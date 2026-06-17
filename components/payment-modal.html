@@ -1,0 +1,21 @@
+<!-- Payment Modal -->
+<div id="paymentModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-sm mx-4">
+    <h3 class="font-brand text-xl text-forest mb-4">Payment</h3>
+    <p class="text-sm text-gray-500 mb-1">Total Amount</p>
+    <p class="text-2xl font-bold text-forest mb-4" id="payTotal">Rp 0</p>
+    <div class="flex gap-2 mb-4">
+      <button onclick="setPayMethod('CASH')" id="btnCash" class="flex-1 py-2 border-2 border-forest bg-forest text-white rounded-lg font-medium text-sm">CASH</button>
+      <button onclick="setPayMethod('QRIS')" id="btnQris" class="flex-1 py-2 border-2 border-gray-300 rounded-lg font-medium text-sm">QRIS</button>
+    </div>
+    <div id="cashSection">
+      <label class="text-sm font-medium text-gray-700">Amount Tendered</label>
+      <input id="cashInput" type="number" class="w-full mt-1 px-4 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-forest" oninput="calcChange()">
+      <p class="mt-2 text-sm">Change: <span id="changeDisplay" class="font-bold">Rp 0</span></p>
+    </div>
+    <div class="flex gap-2 mt-5">
+      <button onclick="closePayment()" class="flex-1 py-2.5 border border-gray-300 rounded-lg font-medium text-sm">Cancel</button>
+      <button onclick="confirmPayment()" id="confirmPayBtn" class="flex-1 py-2.5 bg-terra text-white rounded-lg font-medium text-sm hover:bg-terraLight">Confirm</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,55 @@
+<section id="page-reservation" class="page hidden">
+  <!-- Header -->
+  <div class="flex justify-between items-end mb-8">
+    <div>
+      <p class="text-sm uppercase tracking-[0.3em] text-gray-400">
+        Dining Experience
+      </p>
+
+      <h1 class="font-display text-5xl text-terra mt-2">Table Reservation</h1>
+
+      <p class="text-gray-500 mt-3">
+        Manage customer reservations and table availability.
+      </p>
+    </div>
+
+    <button
+      onclick="openReservationModal()"
+      class="btn-primary flex items-center gap-2">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+      New Reservation
+    </button>
+  </div>
+
+  <!-- Stats -->
+
+  <div class="grid md:grid-cols-3 gap-6 mb-8">
+    <div class="card-premium p-6">
+      <p class="text-gray-400 text-sm">Total Tables</p>
+
+      <h2 id="totalTables" class="font-display text-4xl text-forest mt-2">
+        12
+      </h2>
+    </div>
+
+    <div class="card-premium p-6">
+      <p class="text-gray-400 text-sm">Reserved</p>
+
+      <h2 id="reservedTables" class="font-display text-4xl text-terra mt-2">
+        0
+      </h2>
+    </div>
+
+    <div class="card-premium p-6">
+      <p class="text-gray-400 text-sm">Available</p>
+
+      <h2 id="availableTables" class="font-display text-4xl text-forest mt-2">
+        12
+      </h2>
+    </div>
+  </div>
+
+  <!-- Table Layout -->
+
+  <div id="tableGrid" class="grid gap-6"></div>
+</section>

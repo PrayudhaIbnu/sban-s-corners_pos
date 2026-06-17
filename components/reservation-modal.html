@@ -1,0 +1,175 @@
+<div
+  id="reservationModal"
+  class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+>
+
+  <div class="bg-white rounded-3xl w-full max-w-xl overflow-hidden">
+
+    <!-- Header -->
+    <div class="bg-forest px-8 py-6">
+
+      <p class="text-white/50 uppercase text-xs tracking-[0.3em]">
+        Reservation
+      </p>
+
+      <h2 class="font-display text-4xl text-terra mt-2">
+        New Reservation
+      </h2>
+
+    </div>
+
+    <!-- Body -->
+    <div class="p-8 space-y-5">
+
+      <!-- Table -->
+      <div>
+
+        <label class="block text-sm text-gray-500 mb-2">
+          Select Table
+        </label>
+
+        <select
+          id="reservationTableId"
+          class="input-premium w-full"
+        >
+        </select>
+
+      </div>
+
+      <!-- Customer -->
+      <div>
+
+        <label class="block text-sm text-gray-500 mb-2">
+          Customer Name
+        </label>
+
+        <input
+          id="customerName"
+          type="text"
+          class="input-premium w-full"
+          placeholder="John Doe"
+        />
+
+      </div>
+
+      <!-- Guests -->
+      <div>
+
+        <label class="block text-sm text-gray-500 mb-2">
+          Guests
+        </label>
+
+        <input
+          id="guestCount"
+          type="number"
+          min="1"
+          class="input-premium w-full"
+          placeholder="4"
+        />
+
+      </div>
+
+      <!-- Date -->
+      <div>
+
+        <label class="block text-sm text-gray-500 mb-2">
+          Reservation Date
+        </label>
+
+        <input
+          id="reservationDate"
+          type="date"
+          class="input-premium w-full"
+        />
+
+      </div>
+
+      <!-- Time -->
+      <div>
+
+        <label class="block text-sm text-gray-500 mb-2">
+          Reservation Time
+        </label>
+
+        <input
+          id="reservationTime"
+          type="time"
+          class="input-premium w-full"
+        />
+
+      </div>
+
+      <!-- Note -->
+      <div>
+
+        <label class="block text-sm text-gray-500 mb-2">
+          Notes
+        </label>
+
+        <textarea
+          id="reservationNote"
+          class="input-premium w-full h-24"
+          placeholder="Birthday celebration, window seat, etc."
+        ></textarea>
+
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="border-t p-6 flex gap-3">
+
+      <button
+        onclick="closeReservationModal()"
+        class="btn-secondary flex-1"
+      >
+        Cancel
+      </button>
+
+      <button
+        onclick="saveReservation()"
+        class="btn-primary flex-1"
+      >
+        Save Reservation
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+<style>
+  .input-premium {
+    width: 100%;
+    padding: 14px 18px;
+
+    border: 1px solid #e5ddd3;
+    border-radius: 16px;
+
+    background: #fff;
+    transition: 0.3s;
+  }
+
+  .input-premium:focus {
+    outline: none;
+    border-color: #0f4d21;
+
+    box-shadow: 0 0 0 4px rgba(15, 77, 33, 0.08);
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.25s ease;
+  }
+</style>

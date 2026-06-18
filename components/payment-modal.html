@@ -1,21 +1,432 @@
 <!-- Payment Modal -->
-<div id="paymentModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
-  <div class="bg-white rounded-2xl p-6 w-full max-w-sm mx-4">
-    <h3 class="font-brand text-xl text-forest mb-4">Payment</h3>
-    <p class="text-sm text-gray-500 mb-1">Total Amount</p>
-    <p class="text-2xl font-bold text-forest mb-4" id="payTotal">Rp 0</p>
-    <div class="flex gap-2 mb-4">
-      <button onclick="setPayMethod('CASH')" id="btnCash" class="flex-1 py-2 border-2 border-forest bg-forest text-white rounded-lg font-medium text-sm">CASH</button>
-      <button onclick="setPayMethod('QRIS')" id="btnQris" class="flex-1 py-2 border-2 border-gray-300 rounded-lg font-medium text-sm">QRIS</button>
+<div id="paymentModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+  <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-[scale-in_0.3s_ease-out]">
+    
+    <!-- ===== HEADER ===== -->
+    <div class="relative bg-gradient-to-br from-forest via-forest to-forestLight px-6 py-6 text-white overflow-hidden">
+      <!-- Decorative elements -->
+      <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full"></div>
+      <div class="absolute -bottom-16 -left-8 w-48 h-48 bg-white/5 rounded-full"></div>
+      
+      <div class="relative flex justify-between items-start">
+        <div class="flex items-center gap-3">
+          <!-- Icon -->
+          <div class="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
+            <i data-lucide="credit-card" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-white/60 text-[10px] uppercase tracking-[0.3em] font-medium">Checkout</p>
+            <h2 class="font-brand text-2xl font-bold mt-0.5">Payment</h2>
+          </div>
+        </div>
+        
+        <!-- Close button -->
+        <button onclick="closePayment()" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition border border-white/10">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
     </div>
-    <div id="cashSection">
-      <label class="text-sm font-medium text-gray-700">Amount Tendered</label>
-      <input id="cashInput" type="number" class="w-full mt-1 px-4 py-2.5 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-forest" oninput="calcChange()">
-      <p class="mt-2 text-sm">Change: <span id="changeDisplay" class="font-bold">Rp 0</span></p>
+
+    <!-- ===== BODY ===== -->
+    <div class="p-6 max-h-[60vh] overflow-y-auto">
+      
+      <!-- ORDER SUMMARY MINI -->
+      <div class="flex items-center justify-between mb-4 pb-4 border-b border-dashed border-gray-200">
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+          <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+          <span id="payItemCount">0 items</span>
+        </div>
+        <div class="flex items-center gap-1 text-xs text-gray-400">
+          <i data-lucide="clock" class="w-3 h-3"></i>
+          <span id="payTime"></span>
+        </div>
+      </div>
+
+      <!-- TOTAL AMOUNT (HIGHLIGHTED) -->
+      <div class="relative bg-gradient-to-br from-cream to-[#F9F6F2] rounded-2xl p-5 border border-[#EFE7DE] overflow-hidden">
+        <!-- Decorative -->
+        <div class="absolute top-0 right-0 w-24 h-24 bg-terra/5 rounded-full -translate-y-8 translate-x-8"></div>
+        
+        <div class="relative">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs uppercase tracking-wider text-gray-500 font-medium">Total Amount</p>
+            <span class="text-[10px] bg-terra/10 text-terra px-2 py-0.5 rounded-full font-semibold">
+              INCLUDES TAX
+            </span>
+          </div>
+          <h3 id="payTotal" class="font-brand text-4xl font-bold text-forest mt-1">Rp 0</h3>
+          <p class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+            <i data-lucide="info" class="w-3 h-3"></i>
+            Tax 10% already included
+          </p>
+        </div>
+      </div>
+
+      <!-- PAYMENT METHOD SELECTOR -->
+      <div class="mt-6">
+        <label class="flex items-center gap-2 text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3">
+          <i data-lucide="wallet" class="w-3.5 h-3.5"></i>
+          Payment Method
+        </label>
+
+        <div class="grid grid-cols-2 gap-3">
+          <!-- CASH Button -->
+          <button id="btnCash" onclick="setPayMethod('CASH')" class="pay-method-card active group">
+            <div class="pay-method-icon bg-green-100 text-green-700 group-[.active]:bg-white group-[.active]:text-green-700">
+              <i data-lucide="banknote" class="w-5 h-5"></i>
+            </div>
+            <div class="text-left">
+              <p class="font-bold text-sm">Cash</p>
+              <p class="text-[10px] text-gray-500 group-[.active]:text-white/70">Bayar tunai</p>
+            </div>
+            <div class="pay-method-check">
+              <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            </div>
+          </button>
+
+          <!-- QRIS Button -->
+          <button id="btnQris" onclick="setPayMethod('QRIS')" class="pay-method-card group">
+            <div class="pay-method-icon bg-blue-100 text-blue-700 group-[.active]:bg-white group-[.active]:text-blue-700">
+              <i data-lucide="qr-code" class="w-5 h-5"></i>
+            </div>
+            <div class="text-left">
+              <p class="font-bold text-sm">QRIS</p>
+              <p class="text-[10px] text-gray-500 group-[.active]:text-white/70">Scan & pay</p>
+            </div>
+            <div class="pay-method-check">
+              <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===== CASH SECTION ===== -->
+      <div id="cashSection" class="mt-6 space-y-4 animate-fade-in">
+        
+        <!-- Input Amount -->
+        <div>
+          <label class="flex items-center gap-2 text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">
+            <i data-lucide="coins" class="w-3.5 h-3.5"></i>
+            Amount Tendered
+          </label>
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold">Rp</span>
+            <input
+              id="cashInput"
+              type="text"
+              inputmode="numeric"
+              class="w-full pl-12 pr-4 py-4 bg-cream border-2 border-[#EFE7DE] rounded-2xl text-xl font-bold text-forest outline-none focus:border-forest focus:bg-white transition"
+              placeholder="0"
+              oninput="handleCashInput(this)"
+              onfocus="this.select()" />
+          </div>
+        </div>
+
+        <!-- Quick Amount Buttons -->
+        <div>
+          <p class="text-xs text-gray-500 font-medium mb-2">Quick Amount</p>
+          <div class="grid grid-cols-4 gap-2" id="quickAmountGrid">
+            <!-- Will be populated by JS -->
+          </div>
+        </div>
+
+        <!-- Change Display -->
+        <div id="changeBox" class="relative bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-4 overflow-hidden transition-all">
+          <div class="absolute top-0 right-0 w-20 h-20 bg-green-200/30 rounded-full -translate-y-8 translate-x-8"></div>
+          <div class="relative flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-10 h-10 rounded-xl bg-green-500 text-white flex items-center justify-center shadow-lg shadow-green-500/30">
+                <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <p class="text-xs text-green-700 font-medium">Kembalian</p>
+                <p class="text-[10px] text-green-600/70">Change</p>
+              </div>
+            </div>
+            <p id="changeDisplay" class="font-brand text-2xl font-bold text-green-700">Rp 0</p>
+          </div>
+        </div>
+
+        <!-- Insufficient Warning -->
+        <div id="insufficientWarning" class="hidden bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2 text-red-700 text-sm">
+          <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+          <span>Uang yang diberikan kurang dari total</span>
+        </div>
+      </div>
+
+      <!-- ===== QRIS SECTION ===== -->
+      <div id="qrisSection" class="hidden mt-6 space-y-4 animate-fade-in">
+        
+        <!-- QR Code Display -->
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-100 rounded-2xl p-5 text-center">
+          
+          <!-- QR Code Container -->
+          <div class="inline-block bg-white p-3 rounded-2xl shadow-lg mb-3">
+            <div class="w-40 h-40 relative">
+              <img src="https://static.wixstatic.com/media/dc16c3_b865490366d94a809c4bb91a2584a8d6~mv2.jpeg" 
+                   class="w-full h-full object-contain rounded-lg" 
+                   alt="QRIS Code"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <!-- Fallback QR Pattern -->
+              <div class="hidden w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg items-center justify-center relative overflow-hidden">
+                <div class="absolute inset-2 grid grid-cols-10 grid-rows-10 gap-0.5">
+                  ${Array(100).fill(0).map(() => 
+                    `<div class="${Math.random() > 0.5 ? 'bg-white' : 'bg-transparent'} rounded-sm"></div>`
+                  ).join('')}
+                </div>
+                <div class="relative bg-white p-2 rounded-lg shadow-md">
+                  <span class="text-xs font-bold text-forest">SBAN'S</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <p class="font-brand font-bold text-forest text-lg flex items-center justify-center gap-2">
+              <span class="text-xl">📱</span>
+              Scan QRIS Code
+            </p>
+            <p class="text-xs text-gray-600">
+              Buka aplikasi e-wallet atau mobile banking Anda
+            </p>
+          </div>
+
+          <!-- Status Indicator -->
+          <div class="mt-4 flex items-center justify-center gap-2 text-xs">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </span>
+            <span class="text-blue-700 font-medium">Menunggu pembayaran...</span>
+          </div>
+        </div>
+
+        <!-- Supported Apps -->
+        <div>
+          <p class="text-xs text-gray-500 font-medium mb-2 text-center">Supported by</p>
+          <div class="flex items-center justify-center gap-2 flex-wrap">
+            <span class="px-3 py-1.5 bg-gray-100 rounded-lg text-xs font-medium text-gray-700">GoPay</span>
+            <span class="px-3 py-1.5 bg-gray-100 rounded-lg text-xs font-medium text-gray-700">OVO</span>
+            <span class="px-3 py-1.5 bg-gray-100 rounded-lg text-xs font-medium text-gray-700">DANA</span>
+            <span class="px-3 py-1.5 bg-gray-100 rounded-lg text-xs font-medium text-gray-700">ShopeePay</span>
+            <span class="px-3 py-1.5 bg-gray-100 rounded-lg text-xs font-medium text-gray-700">LinkAja</span>
+          </div>
+        </div>
+      </div>
+
     </div>
-    <div class="flex gap-2 mt-5">
-      <button onclick="closePayment()" class="flex-1 py-2.5 border border-gray-300 rounded-lg font-medium text-sm">Cancel</button>
-      <button onclick="confirmPayment()" id="confirmPayBtn" class="flex-1 py-2.5 bg-terra text-white rounded-lg font-medium text-sm hover:bg-terraLight">Confirm</button>
+
+    <!-- ===== FOOTER ===== -->
+    <div class="bg-cream border-t border-[#EFE7DE] p-4 flex gap-2">
+      <button onclick="closePayment()" class="flex-1 py-3.5 border-2 border-gray-200 rounded-xl font-semibold text-sm text-gray-600 hover:bg-white hover:border-gray-300 transition flex items-center justify-center gap-2">
+        <i data-lucide="x" class="w-4 h-4"></i>
+        Cancel
+      </button>
+      <button onclick="confirmPayment()" id="confirmPayBtn" class="flex-[2] py-3.5 bg-gradient-to-r from-terra to-terraLight text-white rounded-xl font-semibold text-sm shadow-lg shadow-terra/30 hover:shadow-xl hover:shadow-terra/40 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+        <span id="confirmPayText">Complete Payment</span>
+      </button>
     </div>
+    
   </div>
 </div>
+<style>
+  /* ===== PAYMENT MODAL ANIMATIONS ===== */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* ===== PAYMENT METHOD CARDS ===== */
+.pay-method-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 2px solid #E5DDD3;
+  border-radius: 1rem;
+  background: white;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.pay-method-card:hover {
+  border-color: #1B4332;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(27, 67, 50, 0.08);
+}
+
+.pay-method-card.active {
+  background: linear-gradient(135deg, #1B4332, #2D6A4F);
+  border-color: #1B4332;
+  color: white;
+  box-shadow: 0 8px 20px rgba(27, 67, 50, 0.25);
+}
+
+.pay-method-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.pay-method-check {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: white;
+}
+
+.pay-method-card.active .pay-method-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ===== QUICK AMOUNT BUTTONS ===== */
+.quick-amount-btn {
+  padding: 0.5rem 0.25rem;
+  border: 1.5px solid #E5DDD3;
+  border-radius: 0.75rem;
+  background: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1B4332;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.quick-amount-btn:hover {
+  border-color: #1B4332;
+  background: #F9F6F2;
+  transform: translateY(-1px);
+}
+
+.quick-amount-btn.active {
+  background: #1B4332;
+  border-color: #1B4332;
+  color: white;
+}
+
+.quick-amount-btn.exact {
+  background: linear-gradient(135deg, #A3331D, #C44D34);
+  border-color: #A3331D;
+  color: white;
+}
+
+.quick-amount-btn.exact:hover {
+  background: linear-gradient(135deg, #C44D34, #A3331D);
+}
+
+/* ===== INPUT PREMIUM ===== */
+.input-premium {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
+  background: #FDFBF7;
+  border: 2px solid #EFE7DE;
+  border-radius: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1B4332;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.input-premium:focus {
+  border-color: #1B4332;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(27, 67, 50, 0.1);
+}
+
+.input-premium.error {
+  border-color: #A3331D;
+  background: #FEF2F0;
+}
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, #A3331D, #C44D34);
+  color: white;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 12px rgba(163, 51, 29, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(163, 51, 29, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 0.875rem 1.5rem;
+  background: white;
+  color: #4B5563;
+  border: 2px solid #E5E7EB;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: #F9FAFB;
+  border-color: #D1D5DB;
+}
+
+/* ===== CHANGE BOX ANIMATION ===== */
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+}
+
+.change-pulse {
+  animation: pulse-green 1s ease-out;
+}
+
+/* ===== SCROLLBAR CUSTOM ===== */
+#paymentModal ::-webkit-scrollbar {
+  width: 6px;
+}
+
+#paymentModal ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#paymentModal ::-webkit-scrollbar-thumb {
+  background: #E5DDD3;
+  border-radius: 3px;
+}
+
+#paymentModal ::-webkit-scrollbar-thumb:hover {
+  background: #1B4332;
+}
+</style>

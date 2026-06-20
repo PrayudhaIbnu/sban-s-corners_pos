@@ -1,0 +1,243 @@
+<section id="page-sales" class="page hidden">
+  <!-- Header -->
+  <div class="mb-6 lg:mb-8">
+    <h1 class="font-display text-3xl lg:text-5xl text-terra mt-2">Sales</h1>
+    <p class="mt-2 lg:mt-3 text-sm lg:text-base text-gray-500">
+      Create orders and manage customer purchases.
+    </p>
+  </div>
+
+  <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 h-full">
+    <!-- MENU AREA -->
+    <div class="flex-1 min-w-0">
+      <!-- Categories -->
+      <div
+        class="flex flex-wrap gap-2 lg:gap-3 mb-4 lg:mb-6 overflow-x-auto pb-2">
+        <button
+          onclick="filterCat('all')"
+          data-cat="all"
+          class="cat-btn active-cat whitespace-nowrap">
+          All Menu
+        </button>
+
+        <button
+          onclick="filterCat('Food')"
+          data-cat="Food"
+          class="cat-btn whitespace-nowrap">
+          Food
+        </button>
+
+        <button
+          onclick="filterCat('Snack')"
+          data-cat="Snack"
+          class="cat-btn whitespace-nowrap">
+          Snack
+        </button>
+
+        <button
+          onclick="filterCat('Beverage')"
+          data-cat="Beverage"
+          class="cat-btn whitespace-nowrap">
+          Beverage
+        </button>
+      </div>
+
+      <!-- Menu Grid - Responsive -->
+      <div
+        id="menuGrid"
+        class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6"></div>
+    </div>
+
+    <!-- CART - Desktop: Sidebar | Mobile: Drawer -->
+    <aside
+      id="cartSidebar"
+      class="w-full lg:w-[380px] lg:flex-shrink-0 card-premium p-4 lg:p-6 flex flex-col fixed lg:static bottom-0 lg:bottom-auto left-0 lg:left-auto right-0 lg:right-auto h-[85vh] lg:h-auto max-h-[85vh] lg:max-h-none z-40 lg:z-auto rounded-t-3xl lg:rounded-2xl translate-y-full lg:translate-y-0 transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-[0_8px_25px_rgba(0,0,0,0.05)]">
+      <!-- Drag Handle (Mobile Only) -->
+      <div class="lg:hidden flex justify-center mb-3 -mt-2">
+        <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+      </div>
+
+      <div class="mb-4 lg:mb-6 flex items-center justify-between">
+        <div>
+          <p class="uppercase tracking-[0.2em] text-xs text-gray-400">
+            Current Order
+          </p>
+          <h3 class="font-display text-2xl lg:text-3xl text-forest">Cart</h3>
+        </div>
+
+        <!-- Close Button (Mobile Only) -->
+        <button
+          onclick="toggleCart(false)"
+          class="lg:hidden w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div
+        id="cartItems"
+        class="flex-1 overflow-y-auto space-y-3 min-h-0"></div>
+
+      <div class="border-t border-[#E5DDD3] mt-4 lg:mt-6 pt-4 lg:pt-6">
+        <div class="flex justify-between mb-2 text-sm lg:text-base">
+          <span class="text-gray-500"> Subtotal </span>
+          <span id="cartSubtotal"> Rp 0 </span>
+        </div>
+
+        <div class="flex justify-between mb-4 text-sm lg:text-base">
+          <span class="text-gray-500"> Tax (10%) </span>
+          <span id="cartTax"> Rp 0 </span>
+        </div>
+
+        <div class="flex justify-between text-lg lg:text-xl font-semibold">
+          <span> Total </span>
+          <span id="cartTotal" class="text-forest"> Rp 0 </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-4 lg:mt-6">
+        <button
+          onclick="clearCart()"
+          class="btn-secondary text-sm lg:text-base">
+          Clear
+        </button>
+        <button
+          onclick="openPayment()"
+          class="btn-primary bg-forest text-sm lg:text-base">
+          Checkout
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Cart Overlay (Mobile Only) -->
+  <div
+    id="cartOverlay"
+    onclick="toggleCart(false)"
+    class="hidden lg:hidden fixed inset-0 bg-black/40 z-30 transition-opacity"></div>
+</section>
+
+<style>
+  .cat-btn {
+    padding: 10px 20px;
+    border: 1px solid #d9cfc4;
+    background: white;
+    color: #555;
+    transition: 0.3s;
+    border-radius: 999px;
+    font-size: 14px;
+  }
+
+  .active-cat {
+    background: #0f4d21;
+    color: white;
+    border-color: #0f4d21;
+  }
+
+  .card-premium {
+    background: white;
+    border: 1px solid #e9dfd5;
+    border-radius: 24px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+  }
+
+  .btn-primary {
+    background: #0f4d21;
+    color: white;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: 0.3s;
+  }
+
+  .btn-primary:hover {
+    background: #2d6a4f;
+  }
+
+  .btn-secondary {
+    border: 1px solid #d9cfc4;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: 0.3s;
+  }
+
+  .btn-secondary:hover {
+    background: #f9f6f2;
+  }
+
+  .qty-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #d9cfc4;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+  }
+
+  .qty-btn:hover {
+    background: #f9f6f2;
+    border-color: #0f4d21;
+  }
+
+  /* Hide scrollbar untuk categories */
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+
+  .overflow-x-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Cart drawer animation */
+  #cartSidebar {
+    will-change: transform;
+  }
+
+  /* Badge bounce animation */
+  @keyframes badge-bounce {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.3);
+    }
+  }
+
+  #headerCartBadge.bounce {
+    animation: badge-bounce 0.3s ease;
+  }
+
+  /* Floating button pulse animation */
+  @keyframes cart-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+  }
+
+  #floatingCartBtn.pulse {
+    animation: cart-pulse 0.4s ease;
+  }
+
+  /* Badge bounce animation */
+  @keyframes badge-bounce {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.3);
+    }
+  }
+
+  #floatingCartBadge.bounce {
+    animation: badge-bounce 0.3s ease;
+  }
+</style>

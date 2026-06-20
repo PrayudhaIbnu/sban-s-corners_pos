@@ -1,0 +1,113 @@
+<!-- Reservations Page -->
+<section id="page-reservations" class="page hidden">
+  
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+    <div>
+      <h1 class="font-brand text-2xl text-forest flex items-center gap-2">
+        <i data-lucide="calendar-check" class="w-6 h-6"></i>
+        Manajemen Reservasi
+      </h1>
+      <p class="text-sm text-gray-500 mt-1">Kelola reservasi dari pelanggan</p>
+    </div>
+    <button onclick="renderReservations()" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-cream transition">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+        <i data-lucide="calendar" class="w-4 h-4"></i>
+      </div>
+      <p class="text-xs text-gray-500">Total Hari Ini</p>
+      <p class="font-brand text-xl font-bold text-forest" id="resTotalCount">0</p>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div class="w-9 h-9 rounded-lg bg-green-50 text-green-600 flex items-center justify-center mb-2">
+        <i data-lucide="check-circle" class="w-4 h-4"></i>
+      </div>
+      <p class="text-xs text-gray-500">Dikonfirmasi</p>
+      <p class="font-brand text-xl font-bold text-green-600" id="resConfirmedCount">0</p>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div class="w-9 h-9 rounded-lg bg-forest/10 text-forest flex items-center justify-center mb-2">
+        <i data-lucide="log-in" class="w-4 h-4"></i>
+      </div>
+      <p class="text-xs text-gray-500">Check-in</p>
+      <p class="font-brand text-xl font-bold text-forest" id="resCheckedInCount">0</p>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div class="w-9 h-9 rounded-lg bg-terra/10 text-terra flex items-center justify-center mb-2">
+        <i data-lucide="wallet" class="w-4 h-4"></i>
+      </div>
+      <p class="text-xs text-gray-500">Revenue</p>
+      <p class="font-brand text-xl font-bold text-forest" id="resRevenue">Rp 0</p>
+    </div>
+  </div>
+
+  <!-- Scan Barcode -->
+  <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm mb-4">
+    <h3 class="font-semibold text-sm text-forest mb-3 flex items-center gap-2">
+      <i data-lucide="scan-line" class="w-4 h-4"></i>
+      Scan Barcode Pelanggan
+    </h3>
+    <div class="flex gap-2">
+      <input 
+        type="text" 
+        id="barcodeInput" 
+        placeholder="Scan atau masukkan barcode..."
+        class="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-forest"
+        onkeypress="if(event.key === 'Enter') validateBarcode()">
+      <button onclick="validateBarcode()" class="px-4 py-2 bg-forest text-white rounded-lg text-sm font-medium hover:bg-forestLight transition">
+        <i data-lucide="check" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+    <button onclick="filterReservations('today')" data-filter="today" class="reservation-filter-btn active whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium bg-forest text-white">
+      Hari Ini
+    </button>
+    <button onclick="filterReservations('upcoming')" data-filter="upcoming" class="reservation-filter-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+      Akan Datang
+    </button>
+    <button onclick="filterReservations('all')" data-filter="all" class="reservation-filter-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+      Semua
+    </button>
+  </div>
+
+  <!-- Reservations List -->
+  <div id="reservationsList" class="space-y-3">
+    <!-- Will be populated by JS -->
+  </div>
+
+</section>
+
+<style>
+  .reservation-filter-btn.active {
+    background: #0F4D21 !important;
+    color: white !important;
+  }
+  
+  @keyframes slide-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  .animate-slide-in-right {
+    animation: slide-in-right 0.4s ease-out;
+  }
+</style>

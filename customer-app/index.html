@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="id" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sban's Corner - Reservasi Meja Online</title>
+    <meta
+      name="description"
+      content="Reservasi meja online di Sban's Corner. Pilih meja, pre-order menu, dan dapatkan barcode digital." />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+
+    <!-- QRCode Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css" />
+
+    <!-- Tailwind Config -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              forest: "#0F4D21",
+              forestLight: "#2D6A4F",
+              cream: "#F7F3EE",
+              creamDark: "#EFE7DE",
+              terra: "#B6402A",
+              terraLight: "#D55A42",
+              charcoal: "#2F2A26",
+            },
+            fontFamily: {
+              display: ["Playfair Display", "serif"],
+              body: ["DM Sans", "sans-serif"],
+            },
+            borderRadius: {
+              xl: "18px",
+              "2xl": "24px",
+            },
+            boxShadow: {
+              soft: "0 10px 40px rgba(0,0,0,.08)",
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+
+  <body class="h-full bg-cream text-gray-800 font-body">
+    <!-- ===== APP CONTAINER ===== -->
+    <div id="app" class="h-full w-full flex flex-col">
+      <!-- Header (akan di-toggle berdasarkan route) -->
+      <header id="appHeader" class="bg-white shadow-sm sticky top-0 z-40">
+        <!-- Header content akan di-render oleh JS -->
+      </header>
+
+      <!-- Main Content Area -->
+      <main id="mainContent" class="flex-1 overflow-auto">
+        <!-- Components akan di-load di sini -->
+      </main>
+
+      <!-- Footer (akan di-toggle berdasarkan route) -->
+      <footer id="appFooter">
+        <!-- Footer content akan di-render oleh JS -->
+      </footer>
+    </div>
+
+    <!-- Modals Container -->
+    <div id="modals-container"></div>
+
+    <!-- Toast Container -->
+    <div
+      id="toast-container"
+      class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"></div>
+
+    <!-- data shared -->
+    <script src="../shared/data/products.js"></script>
+    <script src="../shared/storage-bridge.js"></script>
+    <script src="../shared/tables.js"></script>
+    <script src="../shared/modal.js"></script>
+
+
+    <!-- JavaScript Modules -->
+    <script src="js/router.js"></script>
+    <script src="js/reservation.js"></script>
+    <script src="js/menu.js"></script>
+    <script src="js/payment.js"></script>
+    <script src="js/barcode.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

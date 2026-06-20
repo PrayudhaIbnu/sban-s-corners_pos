@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Konfirmasi Reservasi - Sban's Corner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'DM Sans', sans-serif; }
+    .font-brand { font-family: 'Playfair Display', serif; }
+  </style>
+</head>
+<body class="bg-cream min-h-screen">
+  
+  <!-- Header -->
+  <header class="bg-forest text-white py-6 px-4">
+    <div class="max-w-2xl mx-auto text-center">
+      <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="check-circle" class="w-10 h-10"></i>
+      </div>
+      <h1 class="font-brand text-3xl mb-2">Reservasi Berhasil!</h1>
+      <p class="text-white/80">Silakan tunjukkan barcode ini saat datang</p>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-2xl mx-auto px-4 py-8">
+    
+    <!-- Barcode Card -->
+    <div class="bg-white rounded-2xl p-6 shadow-lg mb-6">
+      <div class="text-center mb-6">
+        <p class="text-sm text-gray-600 mb-2">Barcode Reservasi</p>
+        <div id="barcodeContainer" class="inline-block bg-white p-4 rounded-xl border-2 border-gray-200">
+          <canvas id="barcodeCanvas"></canvas>
+        </div>
+        <p class="font-mono text-sm text-gray-600 mt-3" id="reservationId"></p>
+      </div>
+      
+      <div class="border-t pt-4 space-y-3">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Nama</span>
+          <span class="font-semibold" id="customerName"></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Meja</span>
+          <span class="font-semibold" id="tableNumber"></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Tanggal</span>
+          <span class="font-semibold" id="date"></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Waktu</span>
+          <span class="font-semibold" id="time"></span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Jumlah Tamu</span>
+          <span class="font-semibold" id="guestCount"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="space-y-3">
+      <button onclick="downloadBarcode()" class="w-full bg-forest text-white py-3 rounded-xl font-semibold hover:bg-forestLight transition flex items-center justify-center gap-2">
+        <i data-lucide="download" class="w-5 h-5"></i>
+        Download Barcode
+      </button>
+      <a href="index.html" class="block w-full bg-white border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition text-center">
+        Kembali ke Beranda
+      </a>
+    </div>
+
+  </main>
+
+  <script>
+    // Load reservation data
+    const reservation = JSON.parse(sessionStorage.getItem('confirmedReservation') || 'null');
+    
+    if (!reservation) {
+      alert('Data reservasi tidak ditemukan');
+      window.location.href = 'index.html';
+    } else {
+      // Display reservation details
+      document.getElementById('reservationId').textContent = reservation.id;
+      document.getElementById('customerName').textContent = reservation.customerName;
+      document.getElementById('tableNumber').textContent = `Meja ${reservation.tableNumber}`;
+      document.getElementById('date').textContent = formatDate(reservation.date);
+      document.getElementById('time').textContent = `${reservation.time} - ${reservation.endTime}`;
+      document.getElementById('guestCount').textContent = `${reservation.guestCount} orang`;
+      
+      // Generate QR code
+      const canvas = document.getElementById('barcodeCanvas');
+      QRCode.toCanvas(canvas, reservation.id, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#1B4332',
+          light: '#FFFFFF'
+        }
+      });
+    }
+    
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('id-ID', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+    
+    function downloadBarcode() {
+      const canvas = document.getElementById('barcodeCanvas');
+      const link = document.createElement('a');
+      link.download = `barcode-${reservation.id}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+    
+    lucide.createIcons();
+  </script>
+</body>
+</html>

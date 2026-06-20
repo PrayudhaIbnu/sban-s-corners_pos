@@ -1,0 +1,111 @@
+<!-- Dashboard -->
+<section id="page-dashboard" class="page hidden">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="font-brand text-2xl text-forest">Dashboard</h1>
+      <p class="text-sm text-gray-500 mt-1">Ringkasan penjualan hari ini</p>
+    </div>
+    <div class="flex items-center gap-2 text-xs text-gray-500 bg-white px-3 py-2 rounded-lg border border-gray-100">
+      <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+      <span id="dashDate"></span>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <!-- Today's Sales -->
+    <div class="bg-gradient-to-br from-forest to-forestLight rounded-2xl p-5 text-white shadow-lg shadow-forest/20">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+          <i data-lucide="trending-up" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[10px] uppercase tracking-wider bg-white/20 px-2 py-1 rounded-full">Today</span>
+      </div>
+      <p class="text-white/70 text-xs mb-1">Total Sales</p>
+      <p class="font-brand text-2xl font-bold" id="dashSales">Rp 0</p>
+    </div>
+
+    <!-- Total Orders -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[10px] uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-1 rounded-full">Orders</span>
+      </div>
+      <p class="text-gray-500 text-xs mb-1">Total Orders</p>
+      <p class="font-brand text-2xl font-bold text-forest" id="dashOrders">0</p>
+    </div>
+
+    <!-- Average Order -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+          <i data-lucide="calculator" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[10px] uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-1 rounded-full">Average</span>
+      </div>
+      <p class="text-gray-500 text-xs mb-1">Avg. Order Value</p>
+      <p class="font-brand text-2xl font-bold text-forest" id="dashAvg">Rp 0</p>
+    </div>
+
+    <!-- Top Item -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-3">
+        <div class="w-10 h-10 rounded-xl bg-terra/10 text-terra flex items-center justify-center">
+          <i data-lucide="award" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[10px] uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-1 rounded-full">Best</span>
+      </div>
+      <p class="text-gray-500 text-xs mb-1">Top Item</p>
+      <p class="font-brand text-xl font-bold text-forest truncate" id="dashTop">-</p>
+    </div>
+  </div>
+
+  <!-- Charts & Lists -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    
+    <!-- Weekly Sales Chart (2/3 width) -->
+    <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h3 class="font-brand font-bold text-forest text-lg">Weekly Sales</h3>
+          <p class="text-xs text-gray-500 mt-0.5">Performa penjualan 7 hari terakhir</p>
+        </div>
+        <div class="flex items-center gap-1 text-xs text-gray-500">
+          <span class="w-2 h-2 rounded-full bg-forest"></span>
+          <span>Sales</span>
+        </div>
+      </div>
+      <div id="weeklyChart" class="flex items-end gap-2 h-48"></div>
+    </div>
+
+    <!-- Popular Items (1/3 width) -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="font-brand font-bold text-forest text-lg">Popular Items</h3>
+          <p class="text-xs text-gray-500 mt-0.5">Top 5 menu terlaris</p>
+        </div>
+        <i data-lucide="flame" class="w-5 h-5 text-terra"></i>
+      </div>
+      <div id="popularItems" class="space-y-1"></div>
+    </div>
+
+  </div>
+
+  <!-- Recent Transactions -->
+  <div class="mt-4 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="font-brand font-bold text-forest text-lg">Recent Transactions</h3>
+        <p class="text-xs text-gray-500 mt-0.5">5 transaksi terakhir</p>
+      </div>
+      <button onclick="navigate('reports')" class="text-xs text-forest font-medium hover:underline flex items-center gap-1">
+        View All
+        <i data-lucide="arrow-right" class="w-3 h-3"></i>
+      </button>
+    </div>
+    <div id="recentTransactions"></div>
+  </div>
+</section>

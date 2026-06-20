@@ -1,0 +1,444 @@
+<!-- Reports Page -->
+<section id="page-reports" class="page hidden">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+    <div>
+      <h1 class="font-brand text-2xl text-forest flex items-center gap-2">
+        <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+        Laporan Penjualan
+      </h1>
+      <p class="text-sm text-gray-500 mt-1">
+        Analisis omzet dan performa penjualan
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button
+        onclick="exportReportCSV()"
+        class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-cream transition">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        Export CSV
+      </button>
+      <button
+        onclick="window.print()"
+        class="flex items-center gap-2 px-4 py-2 bg-forest text-white rounded-lg text-sm font-medium hover:bg-forestLight transition">
+        <i data-lucide="printer" class="w-4 h-4"></i>
+        Print
+      </button>
+    </div>
+  </div>
+
+  <!-- Period Selector -->
+  <div
+    class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm mb-4 no-print">
+    <div class="flex items-center gap-2 mb-3">
+      <i data-lucide="calendar-range" class="w-4 h-4 text-forest"></i>
+      <span class="text-sm font-semibold text-forest">Periode Laporan</span>
+    </div>
+
+    <!-- Quick Period Buttons -->
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button
+        onclick="setReportPeriod('today')"
+        data-period="today"
+        class="period-btn active">
+        <i data-lucide="sun" class="w-3.5 h-3.5"></i>
+        Hari Ini
+      </button>
+      <button
+        onclick="setReportPeriod('yesterday')"
+        data-period="yesterday"
+        class="period-btn">
+        <i data-lucide="sunrise" class="w-3.5 h-3.5"></i>
+        Kemarin
+      </button>
+      <button
+        onclick="setReportPeriod('week')"
+        data-period="week"
+        class="period-btn">
+        <i data-lucide="calendar-days" class="w-3.5 h-3.5"></i>
+        7 Hari
+      </button>
+      <button
+        onclick="setReportPeriod('month')"
+        data-period="month"
+        class="period-btn">
+        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+        30 Hari
+      </button>
+      <button
+        onclick="setReportPeriod('year')"
+        data-period="year"
+        class="period-btn">
+        <i data-lucide="calendar-range" class="w-3.5 h-3.5"></i>
+        Tahun Ini
+      </button>
+      <button
+        onclick="setReportPeriod('all')"
+        data-period="all"
+        class="period-btn">
+        <i data-lucide="infinity" class="w-3.5 h-3.5"></i>
+        Semua
+      </button>
+      <button
+        onclick="setReportPeriod('custom')"
+        data-period="custom"
+        class="period-btn">
+        <i data-lucide="settings-2" class="w-3.5 h-3.5"></i>
+        Custom
+      </button>
+    </div>
+
+    <!-- Custom Date Range (Hidden by default) -->
+    <div
+      id="customDateRange"
+      class="hidden bg-cream rounded-lg p-4 border border-[#EFE7DE]">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label
+            class="text-xs font-semibold text-gray-600 mb-1.5 flex items-center gap-1.5">
+            <i data-lucide="calendar-arrow-down" class="w-3.5 h-3.5"></i>
+            Dari Tanggal
+          </label>
+          <input
+            type="date"
+            id="reportDateFrom"
+            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-forest"
+            onchange="applyCustomDateRange()" />
+        </div>
+        <div>
+          <label
+            class="text-xs font-semibold text-gray-600 mb-1.5 flex items-center gap-1.5">
+            <i data-lucide="calendar-arrow-up" class="w-3.5 h-3.5"></i>
+            Sampai Tanggal
+          </label>
+          <input
+            type="date"
+            id="reportDateTo"
+            class="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-forest"
+            onchange="applyCustomDateRange()" />
+        </div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button
+          onclick="applyCustomDateRange()"
+          class="flex items-center gap-2 px-4 py-2 bg-forest text-white rounded-lg text-sm font-medium hover:bg-forestLight transition">
+          <i data-lucide="check" class="w-3.5 h-3.5"></i>
+          Terapkan
+        </button>
+        <button
+          onclick="resetCustomDateRange()"
+          class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-cream transition">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Period Display -->
+    <div
+      id="activePeriodDisplay"
+      class="mt-3 flex items-center gap-2 text-sm text-gray-600 bg-cream rounded-lg px-3 py-2">
+      <i data-lucide="info" class="w-4 h-4 text-forest"></i>
+      <span id="activePeriodText">Menampilkan data hari ini</span>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+    <!-- Total Revenue -->
+    <div
+      class="bg-gradient-to-br from-forest to-forestLight rounded-2xl p-5 text-white shadow-lg shadow-forest/20">
+      <div class="flex items-center justify-between mb-3">
+        <div
+          class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+          <i data-lucide="trending-up" class="w-5 h-5"></i>
+        </div>
+        <span
+          id="revenueTrend"
+          class="text-xs bg-white/20 px-2 py-0.5 rounded-full"
+          >-</span
+        >
+      </div>
+      <p class="text-white/70 text-xs mb-1">Total Omzet</p>
+      <p class="font-brand text-2xl font-bold" id="reportTotalRevenue">Rp 0</p>
+    </div>
+
+    <!-- Total Transactions -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-3">
+        <div
+          class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+          <i data-lucide="receipt" class="w-5 h-5"></i>
+        </div>
+      </div>
+      <p class="text-gray-500 text-xs mb-1">Total Transaksi</p>
+      <p class="font-brand text-2xl font-bold text-forest" id="reportTotalTx">
+        0
+      </p>
+    </div>
+
+    <!-- Average Order -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-3">
+        <div
+          class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+          <i data-lucide="calculator" class="w-5 h-5"></i>
+        </div>
+      </div>
+      <p class="text-gray-500 text-xs mb-1">Rata-rata Order</p>
+      <p class="font-brand text-2xl font-bold text-forest" id="reportAvgOrder">
+        Rp 0
+      </p>
+    </div>
+
+    <!-- Biggest Transaction -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-3">
+        <div
+          class="w-10 h-10 rounded-xl bg-terra/10 text-terra flex items-center justify-center">
+          <i data-lucide="crown" class="w-5 h-5"></i>
+        </div>
+      </div>
+      <p class="text-gray-500 text-xs mb-1">Transaksi Terbesar</p>
+      <p class="font-brand text-2xl font-bold text-forest" id="reportMaxTx">
+        Rp 0
+      </p>
+    </div>
+  </div>
+
+  <!-- Payment Method Breakdown -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <h3
+        class="font-brand font-bold text-forest text-lg mb-4 flex items-center gap-2">
+        <i data-lucide="credit-card" class="w-5 h-5"></i>
+        Metode Pembayaran
+      </h3>
+      <div id="paymentBreakdown" class="space-y-3">
+        <!-- Will be populated by JS -->
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      <h3
+        class="font-brand font-bold text-forest text-lg mb-4 flex items-center gap-2">
+        <i data-lucide="pie-chart" class="w-5 h-5"></i>
+        Distribusi Pembayaran
+      </h3>
+      <div id="paymentChart" class="flex items-center justify-center h-40">
+        <!-- Will be populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Sales Chart -->
+  <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h3
+          class="font-brand font-bold text-forest text-lg flex items-center gap-2">
+          <i data-lucide="line-chart" class="w-5 h-5"></i>
+          Grafik Penjualan
+        </h3>
+        <p class="text-xs text-gray-500 mt-0.5" id="chartSubtitle">
+          Penjualan harian
+        </p>
+      </div>
+      <div class="flex items-center gap-1 text-xs text-gray-500">
+        <span class="w-2 h-2 rounded-full bg-forest"></span>
+        <span>Omzet</span>
+      </div>
+    </div>
+    <div id="salesChart" class="flex items-end gap-1 h-56">
+      <!-- Will be populated by JS -->
+    </div>
+  </div>
+
+  <!-- Top Products -->
+  <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3
+          class="font-brand font-bold text-forest text-lg flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5"></i>
+          Produk Terlaris
+        </h3>
+        <p class="text-xs text-gray-500 mt-0.5">
+          Berdasarkan periode yang dipilih
+        </p>
+      </div>
+    </div>
+    <div id="topProducts" class="space-y-2">
+      <!-- Will be populated by JS -->
+    </div>
+  </div>
+
+  <!-- Transactions Table -->
+  <div
+    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div
+      class="p-5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
+      <h3
+        class="font-brand font-bold text-forest text-lg flex items-center gap-2">
+        <i data-lucide="list" class="w-5 h-5"></i>
+        Detail Transaksi
+      </h3>
+      <div class="flex items-center gap-2">
+        <span
+          id="txCount"
+          class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full"
+          >0 transaksi</span
+        >
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-cream">
+          <tr>
+            <th class="text-left px-4 py-3 font-semibold text-gray-700">
+              Order ID
+            </th>
+            <th class="text-left px-4 py-3 font-semibold text-gray-700">
+              Tanggal
+            </th>
+            <th class="text-left px-4 py-3 font-semibold text-gray-700">
+              Items
+            </th>
+            <th class="text-left px-4 py-3 font-semibold text-gray-700">
+              Pembayaran
+            </th>
+            <th class="text-left px-4 py-3 font-semibold text-gray-700">
+              Status
+            </th>
+            <th class="text-right px-4 py-3 font-semibold text-gray-700">
+              Total
+            </th>
+          </tr>
+        </thead>
+        <tbody id="reportsTable">
+          <!-- Will be populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<style>
+  /* ===== REPORTS PAGE STYLES ===== */
+
+  /* Period Buttons */
+  .period-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border: 1.5px solid #e5ddd3;
+    border-radius: 0.625rem;
+    background: white;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #4b5563;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .period-btn:hover {
+    border-color: #1b4332;
+    color: #1b4332;
+    background: #fdfbf7;
+  }
+
+  .period-btn.active {
+    background: linear-gradient(135deg, #1b4332, #2d6a4f);
+    border-color: #1b4332;
+    color: white;
+    box-shadow: 0 4px 12px rgba(27, 67, 50, 0.2);
+  }
+
+  .period-btn.active:hover {
+    color: white;
+  }
+
+  /* Date Input Custom */
+  input[type="date"] {
+    color-scheme: light;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
+
+  /* Sales Chart Bars */
+  #salesChart > div {
+    transition: all 0.2s ease;
+  }
+
+  #salesChart > div:hover {
+    transform: scaleY(1.02);
+    transform-origin: bottom;
+  }
+
+  /* Print styles for reports */
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+
+    #page-reports {
+      padding: 0 !important;
+    }
+
+    .bg-white {
+      box-shadow: none !important;
+      border: 1px solid #e5e7eb !important;
+    }
+  }
+
+  /* Table row hover */
+  #reportsTable tr {
+    transition: background-color 0.15s ease;
+  }
+
+  /* Smooth transitions for all stats */
+  .font-brand {
+    transition: all 0.3s ease;
+  }
+
+  /* Animation for chart bars */
+  @keyframes grow-up {
+    from {
+      height: 0;
+    }
+  }
+
+  #salesChart > div > div {
+    animation: grow-up 0.6s ease-out;
+  }
+
+  /* Donut chart animation */
+  @keyframes draw-circle {
+    from {
+      stroke-dasharray: 0 251;
+    }
+  }
+
+  #paymentChart circle:not(:first-child) {
+    animation: draw-circle 1s ease-out;
+  }
+
+  /* Progress bar animation */
+  @keyframes fill-bar {
+    from {
+      width: 0;
+    }
+  }
+
+  .bg-gradient-to-r.from-forest {
+    animation: fill-bar 0.8s ease-out;
+  }
+</style>

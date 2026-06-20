@@ -73,7 +73,7 @@ function renderReservationPage(container) {
           </h2>
           <div class="flex flex-wrap gap-2" id="categoryFilter">
             <button type="button" onclick="filterTableCategory('all', this)" class="cat-btn active-cat" data-cat="all">
-              <i data-lucide="grid-3x3" class="w-4 h-4"></i>
+              <i data-lucide="layout-grid" class="w-4 h-4"></i>
               Semua
             </button>
             <button type="button" onclick="filterTableCategory('couple', this)" class="cat-btn" data-cat="couple">
@@ -94,7 +94,7 @@ function renderReservationPage(container) {
         <!-- Table Selection -->
         <div class="card">
           <h2 class="font-semibold text-lg mb-4 flex items-center gap-2">
-            <i data-lucide="grid-3x3" class="w-5 h-5 text-forest"></i>
+            <i data-lucide="layout-grid" class="w-5 h-5 text-forest"></i>
             Pilih Meja
           </h2>
           

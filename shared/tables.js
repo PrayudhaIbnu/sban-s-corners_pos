@@ -137,7 +137,7 @@ const TABLES_DATA = [
     position: "center",
     description: "Meja besar di tengah, cocok untuk grup",
     shape: "long",
-    icon: "users-round"
+    icon: "users"
   },
   {
     id: 12,
@@ -149,7 +149,7 @@ const TABLES_DATA = [
     position: "center",
     description: "Meja besar di tengah, cocok untuk grup",
     shape: "long",
-    icon: "users-round"
+    icon: "users"
   },
   {
     id: 13,
@@ -185,7 +185,7 @@ const TABLES_DATA = [
     position: "window",
     description: "Meja besar dekat jendela",
     shape: "long",
-    icon: "users-round"
+    icon: "users"
   },
   {
     id: 16,
@@ -218,7 +218,7 @@ const TABLE_CATEGORIES = {
   "group": {
     label: "Meja Grup",
     description: "Kapasitas 4-6 orang",
-    icon: "users-round",
+    icon: "users",
     color: "purple"
   }
 };

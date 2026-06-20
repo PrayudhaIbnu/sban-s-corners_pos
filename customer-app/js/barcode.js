@@ -4,8 +4,15 @@ function renderConfirmationPage(container) {
   const reservation = JSON.parse(sessionStorage.getItem('confirmedReservation') || 'null');
   
   if (!reservation) {
-    showToast('Data reservasi tidak ditemukan', 'error');
-    Router.navigate('/home');
+    Modal.error({
+      title: 'Data Tidak Ditemukan',
+      message: 'Data reservasi tidak ditemukan. Silakan buat reservasi baru.',
+      icon: 'alert-circle',
+      confirmText: 'Kembali ke Beranda',
+      onConfirm: () => {
+        Router.navigate('/home');
+      }
+    });
     return;
   }
   
@@ -25,24 +32,36 @@ function renderConfirmationPage(container) {
       
       <!-- Barcode Card -->
       <div class="card mb-6 text-center">
-        <p class="text-sm text-gray-600 mb-2">Barcode Reservasi</p>
-        <div class="barcode-container inline-block mb-4">
-          <canvas id="barcodeCanvas"></canvas>
+        <p class="text-sm text-gray-600 mb-4">Barcode Reservasi</p>
+        
+        <!-- QR Code Container -->
+        <div class="barcode-container inline-block mb-4 p-6 bg-white rounded-2xl border-2 border-dashed border-gray-300">
+          <div id="qrcode-container" class="flex items-center justify-center min-h-[200px]">
+            <!-- Loading state -->
+            <div id="qrcode-loading" class="flex flex-col items-center gap-2">
+              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-forest"></div>
+              <p class="text-sm text-gray-500">Generating QR Code...</p>
+            </div>
+            <!-- QR Code akan di-generate di sini oleh qrcodejs -->
+            <div id="qrcode" class="hidden"></div>
+          </div>
         </div>
-        <p class="font-mono text-sm text-gray-600">${reservation.id}</p>
+        
+        <p class="font-mono text-sm text-gray-600 font-semibold">${reservation.id}</p>
+        <p class="text-xs text-gray-400 mt-1">Simpan atau screenshot barcode ini</p>
       </div>
 
       <!-- Details -->
       <div class="card mb-6">
         <h2 class="font-semibold text-lg mb-4">Detail Reservasi</h2>
-        <div class="space-y-3">
+        <div class="space-y-3 text-sm">
           <div class="flex justify-between">
             <span class="text-gray-600">Nama</span>
             <span class="font-semibold">${reservation.customerName}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Meja</span>
-            <span class="font-semibold">Meja ${reservation.tableNumber}</span>
+            <span class="font-semibold">Meja ${reservation.tableNumber} ${reservation.tableName ? `(${reservation.tableName})` : ''}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Tanggal</span>
@@ -58,14 +77,18 @@ function renderConfirmationPage(container) {
           </div>
           ${reservation.menuOrders && reservation.menuOrders.length > 0 ? `
             <div class="border-t pt-3 mt-3">
-              <p class="text-gray-600 mb-2">Pre-order Menu:</p>
-              <div class="space-y-1">
+              <p class="font-semibold text-gray-700 mb-2">Pre-order Menu:</p>
+              <div class="space-y-1.5">
                 ${reservation.menuOrders.map(item => `
                   <div class="flex justify-between text-sm">
-                    <span>${item.name} x${item.qty}</span>
-                    <span>${formatCurrency(item.price * item.qty)}</span>
+                    <span>${item.name} ×${item.qty}</span>
+                    <span class="font-semibold">${formatCurrency(item.price * item.qty)}</span>
                   </div>
                 `).join('')}
+              </div>
+              <div class="border-t mt-2 pt-2 flex justify-between font-bold">
+                <span>Total</span>
+                <span class="text-forest">${formatCurrency(reservation.total)}</span>
               </div>
             </div>
           ` : ''}
@@ -90,57 +113,229 @@ function renderConfirmationPage(container) {
     </main>
   `;
   
-  // Generate QR code
-  setTimeout(() => {
-    const canvas = document.getElementById('barcodeCanvas');
-    if (canvas && window.QRCode) {
-      QRCode.toCanvas(canvas, reservation.id, {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#0F4D21',
-          light: '#FFFFFF'
-        }
-      });
-    }
-  }, 100);
-  
   // Store reservation for download/share
   window.currentReservation = reservation;
+  
+  // Generate QR code setelah DOM ready
+  setTimeout(() => {
+    generateQRCode(reservation.id);
+  }, 100);
 }
 
+/**
+ * Generate QR Code menggunakan qrcodejs library
+ */
+function generateQRCode(text) {
+  const loadingEl = document.getElementById('qrcode-loading');
+  const qrcodeEl = document.getElementById('qrcode');
+  
+  if (!loadingEl || !qrcodeEl) {
+    console.error('QR code elements not found');
+    showError('Gagal membuat QR code');
+    return;
+  }
+  
+  // Cek apakah QRCode library sudah di-load
+  if (typeof QRCode === 'undefined') {
+    console.error('QRCode library not loaded');
+    showError('Library QR code tidak ter-load. Silakan refresh halaman.');
+    return;
+  }
+  
+  try {
+    // Clear container dulu
+    qrcodeEl.innerHTML = '';
+    qrcodeEl.classList.remove('hidden');
+    loadingEl.classList.add('hidden');
+    
+    // Generate QR code menggunakan qrcodejs API
+    new QRCode(qrcodeEl, {
+      text: text,
+      width: 200,
+      height: 200,
+      colorDark: '#0F4D21',
+      colorLight: '#FFFFFF',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    
+    // Tambahkan animasi
+    qrcodeEl.classList.add('animate-scale-in');
+    
+  } catch (err) {
+    console.error('QR Code generation error:', err);
+    showError('Terjadi kesalahan: ' + err.message);
+  }
+}
+
+/**
+ * Show error message
+ */
+function showError(message) {
+  const loadingEl = document.getElementById('qrcode-loading');
+  if (loadingEl) {
+    loadingEl.innerHTML = `
+      <div class="flex flex-col items-center gap-2 text-red-600">
+        <i data-lucide="x-circle" class="w-12 h-12"></i>
+        <p class="text-sm font-medium">${message}</p>
+        <button onclick="location.reload()" class="mt-2 px-4 py-2 bg-forest text-white rounded-lg text-sm">
+          Refresh Halaman
+        </button>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+  }
+}
+
+/**
+ * Download barcode sebagai PNG
+ */
 function downloadBarcode() {
-  const canvas = document.getElementById('barcodeCanvas');
-  if (!canvas) return;
-  
+  const qrcodeEl = document.getElementById('qrcode');
   const reservation = window.currentReservation;
-  const link = document.createElement('a');
-  link.download = `barcode-${reservation.id}.png`;
-  link.href = canvas.toDataURL();
-  link.click();
   
-  showToast('Barcode berhasil didownload', 'success');
+  if (!qrcodeEl || qrcodeEl.classList.contains('hidden')) {
+    Modal.error({
+      title: 'Barcode Belum Siap',
+      message: 'QR code belum berhasil di-generate. Silakan tunggu beberapa saat atau refresh halaman.',
+      icon: 'alert-circle'
+    });
+    return;
+  }
+  
+  if (!reservation) {
+    Modal.error({
+      title: 'Data Tidak Ditemukan',
+      message: 'Data reservasi tidak ditemukan',
+      icon: 'alert-circle'
+    });
+    return;
+  }
+  
+  try {
+    // Cari canvas atau img yang di-generate oleh qrcodejs
+    const canvas = qrcodeEl.querySelector('canvas');
+    const img = qrcodeEl.querySelector('img');
+    
+    if (canvas) {
+      // Convert canvas ke blob
+      canvas.toBlob(function(blob) {
+        if (!blob) {
+          Modal.error({
+            title: 'Download Gagal',
+            message: 'Gagal membuat file gambar',
+            icon: 'x-circle'
+          });
+          return;
+        }
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `barcode-${reservation.id}.png`;
+        link.href = url;
+        link.click();
+        
+        // Cleanup
+        URL.revokeObjectURL(url);
+        
+        // Show success
+        Modal.success({
+          title: 'Download Berhasil',
+          message: `Barcode ${reservation.id} berhasil di-download`,
+          icon: 'check-circle'
+        });
+        
+      }, 'image/png');
+      
+    } else if (img) {
+      // Jika qrcodejs generate img (bukan canvas)
+      const link = document.createElement('a');
+      link.download = `barcode-${reservation.id}.png`;
+      link.href = img.src;
+      link.click();
+      
+      Modal.success({
+        title: 'Download Berhasil',
+        message: `Barcode ${reservation.id} berhasil di-download`,
+        icon: 'check-circle'
+      });
+      
+    } else {
+      Modal.error({
+        title: 'Download Gagal',
+        message: 'Tidak ada gambar QR code yang ditemukan',
+        icon: 'x-circle'
+      });
+    }
+    
+  } catch (err) {
+    console.error('Download error:', err);
+    Modal.error({
+      title: 'Download Gagal',
+      message: err.message,
+      icon: 'x-circle'
+    });
+  }
 }
 
+/**
+ * Share via WhatsApp
+ */
 function shareWhatsApp() {
   const reservation = window.currentReservation;
-  if (!reservation) return;
+  if (!reservation) {
+    Modal.error({
+      title: 'Data Tidak Ditemukan',
+      message: 'Data reservasi tidak ditemukan',
+      icon: 'alert-circle'
+    });
+    return;
+  }
+  
+  const menuText = reservation.menuOrders && reservation.menuOrders.length > 0
+    ? `\n\nPre-order Menu:\n${reservation.menuOrders.map(item => `• ${item.name} ×${item.qty}`).join('\n')}\nTotal: ${formatCurrency(reservation.total)}`
+    : '';
   
   const message = `
-*Reservasi Sban's Corner* 🍽️
+*RESERVASI SBAN'S CORNER* ️
 
-📋 ID: ${reservation.id}
-👤 Nama: ${reservation.customerName}
-🪑 Meja: ${reservation.tableNumber}
-📅 Tanggal: ${formatDate(reservation.date)}
-🕐 Waktu: ${reservation.time} - ${reservation.endTime}
-👥 Tamu: ${reservation.guestCount} orang
+ID: ${reservation.id}
+Nama: ${reservation.customerName}
+Meja: ${reservation.tableName || 'Meja ' + reservation.tableNumber}
+Tanggal: ${formatDate(reservation.date)}
+Waktu: ${reservation.time} - ${reservation.endTime}
+Tamu: ${reservation.guestCount} orang
+${menuText}
 
-Silakan tunjukkan pesan ini atau barcode saat datang.
+Silakan tunjukkan barcode ini saat datang.
 
 Terima kasih! 🙏
   `.trim();
   
-  const url = `https://wa.me/${reservation.customerPhone}?text=${encodeURIComponent(message)}`;
+  const phone = reservation.customerPhone.replace(/^0/, '62');
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  
   window.open(url, '_blank');
+}
+
+/**
+ * Format date untuk display
+ */
+function formatDate(dateStr) {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('id-ID', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+/**
+ * Format currency
+ */
+function formatCurrency(amount) {
+  if (!amount && amount !== 0) return 'Rp 0';
+  return 'Rp ' + amount.toLocaleString('id-ID');
 }

@@ -94,6 +94,24 @@
           oninput="filterOrders()" />
       </div>
 
+      <!-- ️ BARU: Order Type Filter -->
+      <div class="relative">
+        <i
+          data-lucide="layers"
+          class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+        <select
+          id="orderTypeFilter"
+          onchange="filterOrders()"
+          class="pl-9 pr-8 py-2 bg-cream border border-gray-200 rounded-lg text-sm outline-none focus:border-forest appearance-none cursor-pointer">
+          <option value="all">Semua Tipe</option>
+          <option value="reservation">Reservasi</option>
+          <option value="delivery">🚚 Delivery</option>
+        </select>
+        <i
+          data-lucide="chevron-down"
+          class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+      </div>
+
       <!-- Status Filter -->
       <div class="relative">
         <i
@@ -105,10 +123,10 @@
           class="pl-9 pr-8 py-2 bg-cream border border-gray-200 rounded-lg text-sm outline-none focus:border-forest appearance-none cursor-pointer">
           <option value="all">Semua Status</option>
           <option value="pending">Pending</option>
-          <option value="preparing">Preparing</option>
-          <option value="ready">Ready</option>
-          <option value="completed">Completed</option>
-          <option value="cancelled">Cancelled</option>
+          <option value="preparing">👨‍🍳 Preparing</option>
+          <option value="ready">✅ Ready</option>
+          <option value="completed">🎉 Completed</option>
+          <option value="cancelled">❌ Cancelled</option>
         </select>
         <i
           data-lucide="chevron-down"
@@ -125,8 +143,8 @@
           onchange="filterOrders()"
           class="pl-9 pr-8 py-2 bg-cream border border-gray-200 rounded-lg text-sm outline-none focus:border-forest appearance-none cursor-pointer">
           <option value="all">Semua Pembayaran</option>
-          <option value="CASH">Cash</option>
-          <option value="QRIS">QRIS</option>
+          <option value="CASH">💵 Cash</option>
+          <option value="QRIS">📱 QRIS</option>
         </select>
         <i
           data-lucide="chevron-down"
@@ -155,9 +173,7 @@
   </div>
 
   <!-- Orders List -->
-  <div id="ordersList" class="space-y-3">
-    <!-- Will be populated by JS -->
-  </div>
+  <div id="ordersList" class="space-y-3"></div>
 </section>
 
 <!-- Order Detail Side Panel -->
@@ -212,127 +228,140 @@
 <style>
   /* ===== ORDERS PAGE STYLES ===== */
 
-/* Status Badge - Icon based */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  border-radius: 9999px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-}
+  /* Status Badge - Icon based */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
 
-.status-orange {
-  background: #FFF7ED;
-  color: #C2410C;
-  border: 1px solid #FED7AA;
-}
+  .status-orange {
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+  }
 
-.status-blue {
-  background: #EFF6FF;
-  color: #1D4ED8;
-  border: 1px solid #BFDBFE;
-}
+  .status-blue {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
 
-.status-green {
-  background: #F0FDF4;
-  color: #15803D;
-  border: 1px solid #BBF7D0;
-}
+  .status-green {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+  }
 
-.status-forest {
-  background: #F0FDF4;
-  color: #1B4332;
-  border: 1px solid #86EFAC;
-}
+  .status-forest {
+    background: #f0fdf4;
+    color: #1b4332;
+    border: 1px solid #86efac;
+  }
 
-.status-red {
-  background: #FEF2F2;
-  color: #B91C1C;
-  border: 1px solid #FECACA;
-}
+  .status-red {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+  }
 
-/* Order Card */
-.order-card {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
+  /* Order Card */
+  .order-card {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-.order-card:hover {
-  transform: translateY(-2px);
-}
+  .order-card:hover {
+    transform: translateY(-2px);
+  }
 
-/* Arrow button animation */
-.order-card .arrow-btn {
-  transition: all 0.25s ease;
-}
+  /* Arrow button animation */
+  .order-card .arrow-btn {
+    transition: all 0.25s ease;
+  }
 
-.order-card:hover .arrow-btn {
-  transform: translateX(3px);
-  background: #1B4332;
-  color: white;
-}
+  .order-card:hover .arrow-btn {
+    transform: translateX(3px);
+    background: #1b4332;
+    color: white;
+  }
 
-/* Side Panel Animation */
-@keyframes slide-in-right {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}
+  /* Side Panel Animation */
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
 
-/* Scrollbar for side panel */
-#orderDetailContent::-webkit-scrollbar {
-  width: 6px;
-}
+  /* Scrollbar for side panel */
+  #orderDetailContent::-webkit-scrollbar {
+    width: 6px;
+  }
 
-#orderDetailContent::-webkit-scrollbar-track {
-  background: transparent;
-}
+  #orderDetailContent::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-#orderDetailContent::-webkit-scrollbar-thumb {
-  background: #E5DDD3;
-  border-radius: 3px;
-}
+  #orderDetailContent::-webkit-scrollbar-thumb {
+    background: #e5ddd3;
+    border-radius: 3px;
+  }
 
-#orderDetailContent::-webkit-scrollbar-thumb:hover {
-  background: #1B4332;
-}
+  #orderDetailContent::-webkit-scrollbar-thumb:hover {
+    background: #1b4332;
+  }
 
-/* Pulse animation untuk badge notifikasi */
-@keyframes pulse-badge {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-}
+  /* Pulse animation untuk badge notifikasi */
+  @keyframes pulse-badge {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.15);
+    }
+  }
 
-#ordersBadge:not(.hidden) {
-  animation: pulse-badge 2s infinite;
-}
+  #ordersBadge:not(.hidden) {
+    animation: pulse-badge 2s infinite;
+  }
 
-/* Timeline status animation */
-.timeline-step {
-  transition: all 0.3s ease;
-}
+  /* Timeline status animation */
+  .timeline-step {
+    transition: all 0.3s ease;
+  }
 
-.timeline-step.active {
-  animation: pulse-ring 1.5s ease-out;
-}
+  .timeline-step.active {
+    animation: pulse-ring 1.5s ease-out;
+  }
 
-@keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(27, 67, 50, 0.4); }
-  100% { box-shadow: 0 0 0 12px rgba(27, 67, 50, 0); }
-}
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 rgba(27, 67, 50, 0.4);
+    }
+    100% {
+      box-shadow: 0 0 0 12px rgba(27, 67, 50, 0);
+    }
+  }
 
-/* Filter dropdown custom arrow */
-select {
-  background-image: none;
-}
+  /* Filter dropdown custom arrow */
+  select {
+    background-image: none;
+  }
 
-/* Icon hover effect */
-.icon-hover {
-  transition: all 0.2s ease;
-}
+  /* Icon hover effect */
+  .icon-hover {
+    transition: all 0.2s ease;
+  }
 
-.icon-hover:hover {
-  transform: scale(1.1);
-  color: #1B4332;
-}
+  .icon-hover:hover {
+    transform: scale(1.1);
+    color: #1b4332;
+  }
 </style>

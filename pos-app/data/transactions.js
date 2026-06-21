@@ -3,13 +3,22 @@
 let transactions = [];
 
 // Status constants
-const ORDER_STATUS = {
-  PENDING: 'pending',
-  PREPARING: 'preparing',
-  READY: 'ready',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled'
-};
+// const ORDER_STATUS = {
+//   PENDING: 'pending',
+//   PREPARING: 'preparing',
+//   READY: 'ready',
+//   COMPLETED: 'completed',
+//   CANCELLED: 'cancelled'
+// };
+
+function loadTransactions() {
+  const data = localStorage.getItem('sbans_orders');
+  transactions = data ? JSON.parse(data) : [];
+}
+
+function saveTransactions() {
+  localStorage.setItem('sbans_orders', JSON.stringify(transactions));
+}
 
 // Status metadata
 const STATUS_META = {

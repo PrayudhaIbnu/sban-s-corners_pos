@@ -18,33 +18,42 @@ function initNavigation() {
 function navigate(page) {
   currentPage = page;
 
-  // Hide all pages
   document.querySelectorAll(".page").forEach((p) => p.classList.add("hidden"));
 
-  // Show selected page
   const selectedPage = document.getElementById("page-" + page);
   if (selectedPage) {
     selectedPage.classList.remove("hidden");
   }
 
-  // Update nav buttons (sidebar + bottom nav)
-  updateActiveNav(page);
+  document.querySelectorAll(".nav-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.nav === page);
+  });
 
-  // Render page content
   if (page === "sales") renderMenu();
   if (page === "inventory") renderInventory();
-  if (page === "reservation") renderReservations();
   if (page === "dashboard") renderDashboard();
   if (page === "reports") renderReports();
   if (page === "orders") renderOrders();
+  if (page === "reservations") {
+    if (typeof initReservations === "function") {
+      initReservations();
+    } else {
+      renderReservations();
+    }
+  }
 
-  // ⚠️ AUTO-CLOSE sidebar di mobile setelah navigate
+  // ⚠️ BARU: Payment Verification
+  if (page === "payment-verification") {
+    if (typeof initPaymentVerification === "function") {
+      initPaymentVerification();
+    } else {
+      renderPaymentVerification();
+    }
+  }
+
   if (window.innerWidth < 1024) {
     closeSidebar();
   }
-
-  // Scroll ke top saat pindah halaman
-  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 /**
@@ -112,14 +121,18 @@ function navigate(page) {
     btn.classList.toggle("active", btn.dataset.nav === page);
   });
 
-  // Render page content
   if (page === "sales") renderMenu();
   if (page === "inventory") renderInventory();
   if (page === "dashboard") renderDashboard();
   if (page === "reports") renderReports();
-  if (page === "orders") renderOrders();
+  if (page === "orders") {
+    if (typeof initOrders === "function") {
+      initOrders(); // ✅ Initialize dengan listener
+    } else {
+      renderOrders();
+    }
+  }
   if (page === "reservations") {
-    // ⚠️ BARU
     if (typeof initReservations === "function") {
       initReservations();
     } else {

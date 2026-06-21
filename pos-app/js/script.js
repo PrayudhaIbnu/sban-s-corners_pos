@@ -60,6 +60,10 @@ async function loadComponents() {
       r.text(),
     );
 
+    const paymentVerificationHtml = await fetch("components/payment-verification.html").then(
+      (r) => r.text(),
+    );
+
     const reservationHtml = await fetch("components/reservation.html").then(
       (r) => r.text(),
     );
@@ -85,6 +89,7 @@ async function loadComponents() {
 
       <main class="flex-1 overflow-auto p-6">
         ${dashboardHtml}
+        ${paymentVerificationHtml}
         ${reservationHtml}
         ${salesHtml}
         ${ordersHtml}

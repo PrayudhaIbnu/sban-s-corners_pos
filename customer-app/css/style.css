@@ -1256,3 +1256,66 @@ h1, h2, h3, h4, h5, h6 {
   }
   */
 }
+
+/* ===== VARIANT MODAL ===== */
+.variant-option {
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.variant-option:hover {
+  background: #F9F6F2;
+}
+
+.variant-option:has(input:checked) {
+  border-color: #0F4D21 !important;
+  background: rgba(15, 77, 33, 0.05) !important;
+}
+
+.variant-option input[type="radio"] {
+  cursor: pointer;
+}
+
+/* Badge "Ada Variasi" */
+.menu-card-image .absolute {
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
+/* Variant tags di cart */
+.menu-card-body .inline-flex {
+  white-space: nowrap;
+}
+
+/* ===== UPLOAD AREA ===== */
+.upload-area {
+  position: relative;
+  transition: all 0.3s ease;
+  background: #FAFAFA;
+}
+
+.upload-area:hover {
+  background: rgba(15, 77, 33, 0.02);
+}
+
+.upload-area.dragging {
+  border-color: #0F4D21 !important;
+  background: rgba(15, 77, 33, 0.05) !important;
+  transform: scale(1.01);
+}
+
+/* Preview image */
+#previewImage {
+  max-width: 100%;
+  object-fit: contain;
+  background: white;
+}
+
+/* Loading spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}

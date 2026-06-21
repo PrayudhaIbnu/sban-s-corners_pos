@@ -3,10 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sban's Corner - Reservasi Meja Online</title>
-    <meta
-      name="description"
-      content="Reservasi meja online di Sban's Corner. Pilih meja, pre-order menu, dan dapatkan barcode digital." />
+    <title>Sban's Corner - Reservasi & Pesan Online</title>
+    <meta name="description" content="Reservasi meja atau pesan online dari Sban's Corner" />
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
@@ -14,26 +12,14 @@
     <!-- Lucide Icons -->
     <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
 
+    <!-- QRCode Generator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-    <!-- Fallback QRCode library jika CDN gagal -->
-    <script>
-      if (typeof QRCode === "undefined") {
-        console.warn("QRCode CDN gagal, load dari fallback...");
-        const script = document.createElement("script");
-        script.src =
-          "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
-        document.head.appendChild(script);
-      }
-    </script>
-
     <!-- Google Fonts -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
-      rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/style.css">
 
     <!-- Tailwind Config -->
     <script>
@@ -67,44 +53,33 @@
   </head>
 
   <body class="h-full bg-cream text-gray-800 font-body">
-    <!-- ===== APP CONTAINER ===== -->
+    
     <div id="app" class="h-full w-full flex flex-col">
-      <!-- Header (akan di-toggle berdasarkan route) -->
-      <header id="appHeader" class="bg-white shadow-sm sticky top-0 z-40">
-        <!-- Header content akan di-render oleh JS -->
-      </header>
-
-      <!-- Main Content Area -->
-      <main id="mainContent" class="flex-1 overflow-auto">
-        <!-- Components akan di-load di sini -->
-      </main>
-
-      <!-- Footer (akan di-toggle berdasarkan route) -->
-      <footer id="appFooter">
-        <!-- Footer content akan di-render oleh JS -->
-      </footer>
+      <header id="appHeader" class="bg-white shadow-sm sticky top-0 z-40"></header>
+      <main id="mainContent" class="flex-1 overflow-auto"></main>
+      <footer id="appFooter"></footer>
     </div>
 
-    <!-- Modals Container -->
     <div id="modals-container"></div>
+    <div id="toast-container" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"></div>
 
-    <!-- Toast Container -->
-    <div
-      id="toast-container"
-      class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50"></div>
-
-    <!-- data shared -->
+    <!-- Data -->
     <script src="../shared/data/products.js"></script>
-    <script src="../shared/storage-bridge.js"></script>
     <script src="../shared/tables.js"></script>
+    <script src="../shared/storage-bridge.js"></script>
     <script src="../shared/modal.js"></script>
 
-    <!-- JavaScript Modules -->
-    <script src="js/router.js"></script>
-    <script src="js/reservation.js"></script>
-    <script src="js/menu.js"></script>
-    <script src="js/payment.js"></script>
-    <script src="js/barcode.js"></script>
-    <script src="js/app.js"></script>
+<!-- JavaScript Modules -->
+<script src="js/router.js"></script>
+<script src="js/variant.js"></script>
+<script src="js/reservation.js"></script>
+<script src="js/order.js"></script>
+<script src="js/menu.js"></script>
+<script src="js/payment.js"></script>
+<script src="js/barcode.js"></script>
+<script src="js/tracking.js"></script>
+<script src="js/searchOrder.js"></script>
+<script src="js/app.js"></script>
+
   </body>
 </html>

@@ -235,9 +235,6 @@ function calcChange() {
 /**
  * Konfirmasi pembayaran
  */
-/**
- * Konfirmasi pembayaran
- */
 async function confirmPayment() {
   const total = getTotal();
   

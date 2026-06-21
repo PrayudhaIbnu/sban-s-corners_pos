@@ -1,109 +1,159 @@
 // ===== CONFIRMATION PAGE WITH BARCODE =====
 
 function renderConfirmationPage(container) {
-  const reservation = JSON.parse(sessionStorage.getItem('confirmedReservation') || 'null');
+  console.log('🎯 Rendering confirmation page...');
   
-  if (!reservation) {
-    Modal.error({
-      title: 'Data Tidak Ditemukan',
-      message: 'Data reservasi tidak ditemukan. Silakan buat reservasi baru.',
-      icon: 'alert-circle',
-      confirmText: 'Kembali ke Beranda',
-      onConfirm: () => {
-        Router.navigate('/home');
-      }
-    });
+  // ✅ CARA 1: Ambil dari sessionStorage
+  let order = JSON.parse(sessionStorage.getItem('confirmedOrder') || 'null');
+  
+  // ✅ CARA 2: Jika tidak ada, cari di StorageBridge
+  if (!order) {
+    console.log('⚠️ Order not in sessionStorage, checking StorageBridge...');
+    const allOrders = StorageBridge.getOrders();
+    if (allOrders.length > 0) {
+      order = allOrders[allOrders.length - 1]; // Ambil order terakhir
+    }
+  }
+  
+  console.log('📦 Order data:', order);
+  
+  if (!order) {
+    console.error('❌ No order found');
+    container.innerHTML = `
+      <main class="max-w-2xl mx-auto px-4 py-8">
+        <div class="text-center py-12">
+          <div class="w-16 h-16 mx-auto rounded-full bg-red-100 flex items-center justify-center mb-4">
+            <i data-lucide="alert-circle" class="w-8 h-8 text-red-600"></i>
+          </div>
+          <h2 class="font-display text-2xl text-forest mb-2">Data Tidak Ditemukan</h2>
+          <p class="text-gray-600 mb-6">Tidak ada data reservasi yang ditemukan</p>
+          <a href="#/home" class="btn btn-primary inline-block">Kembali ke Beranda</a>
+        </div>
+      </main>
+    `;
+    if (window.lucide) lucide.createIcons();
     return;
   }
   
+  // ✅ Normalize order data
+  const normalizedOrder = {
+    order_id: order.order_id || order.id,
+    id: order.id || order.order_id,
+    date: order.date || order.createdAt,
+    items: order.items || order.menuOrders || [],
+    payment_method: order.payment_method || order.paymentMethod || 'CASH',
+    status: order.status || 'pending',
+    status_history: order.status_history || order.statusHistory || [],
+    total: order.total || 0,
+    orderType: order.orderType || 'reservation',
+    customerName: order.customerName || '',
+    customerPhone: order.customerPhone || '',
+    tableNumber: order.tableNumber || null,
+    tableName: order.tableName || '',
+    guestCount: order.guestCount || 0
+  };
+  
+  console.log('✅ Normalized order:', normalizedOrder);
+  
   container.innerHTML = `
-    <!-- Success Header -->
-    <div class="confirmation-header">
-      <div class="max-w-2xl mx-auto relative z-10">
-        <div class="confirmation-icon">
-          <i data-lucide="check" class="w-12 h-12 text-white"></i>
+    <!-- Header -->
+    <div class="bg-forest text-white py-8 px-4">
+      <div class="max-w-2xl mx-auto text-center">
+        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="check-circle" class="w-10 h-10"></i>
         </div>
-        <h1 class="font-display text-3xl md:text-4xl mb-2">Reservasi Berhasil!</h1>
-        <p class="text-white/80">Silakan tunjukkan barcode ini saat datang</p>
+        <h1 class="font-display text-3xl mb-2">Reservasi Berhasil!</h1>
+        <p class="text-white/80">ID Reservasi: ${normalizedOrder.order_id}</p>
       </div>
     </div>
 
     <main class="max-w-2xl mx-auto px-4 py-8">
       
-      <!-- Barcode Card -->
-      <div class="card mb-6 text-center">
-        <p class="text-sm text-gray-600 mb-4">Barcode Reservasi</p>
-        
-        <!-- QR Code Container -->
-        <div class="barcode-container inline-block mb-4 p-6 bg-white rounded-2xl border-2 border-dashed border-gray-300">
-          <div id="qrcode-container" class="flex items-center justify-center min-h-[200px]">
-            <!-- Loading state -->
-            <div id="qrcode-loading" class="flex flex-col items-center gap-2">
-              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-forest"></div>
-              <p class="text-sm text-gray-500">Generating QR Code...</p>
-            </div>
-            <!-- QR Code akan di-generate di sini oleh qrcodejs -->
-            <div id="qrcode" class="hidden"></div>
+      <!-- Status Info -->
+      <div class="card mb-6">
+        <div class="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <i data-lucide="clock" class="w-6 h-6 text-amber-600 flex-shrink-0"></i>
+          <div>
+            <p class="font-semibold text-amber-900 mb-1">Menunggu Verifikasi Pembayaran</p>
+            <p class="text-sm text-amber-700">
+              Admin akan memverifikasi bukti pembayaran Anda. Anda akan menerima notifikasi setelah pembayaran dikonfirmasi.
+            </p>
           </div>
         </div>
-        
-        <p class="font-mono text-sm text-gray-600 font-semibold">${reservation.id}</p>
-        <p class="text-xs text-gray-400 mt-1">Simpan atau screenshot barcode ini</p>
       </div>
 
-      <!-- Details -->
+      <!-- Reservation Details -->
       <div class="card mb-6">
-        <h2 class="font-semibold text-lg mb-4">Detail Reservasi</h2>
+        <h2 class="font-semibold text-lg mb-4 flex items-center gap-2">
+          <i data-lucide="calendar-check" class="w-5 h-5 text-forest"></i>
+          Detail Reservasi
+        </h2>
         <div class="space-y-3 text-sm">
           <div class="flex justify-between">
             <span class="text-gray-600">Nama</span>
-            <span class="font-semibold">${reservation.customerName}</span>
+            <span class="font-semibold">${normalizedOrder.customerName}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">WhatsApp</span>
+            <span class="font-semibold">${normalizedOrder.customerPhone}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Meja</span>
-            <span class="font-semibold">Meja ${reservation.tableNumber} ${reservation.tableName ? `(${reservation.tableName})` : ''}</span>
+            <span class="font-semibold">${normalizedOrder.tableName || 'Meja ' + normalizedOrder.tableNumber}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Tanggal</span>
-            <span class="font-semibold">${formatDate(reservation.date)}</span>
+            <span class="font-semibold">${formatDate(normalizedOrder.date)}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Waktu</span>
-            <span class="font-semibold">${reservation.time} - ${reservation.endTime}</span>
+            <span class="font-semibold">${new Date(normalizedOrder.date).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})}</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-600">Jumlah Tamu</span>
-            <span class="font-semibold">${reservation.guestCount} orang</span>
+            <span class="font-semibold">${normalizedOrder.guestCount} orang</span>
           </div>
-          ${reservation.menuOrders && reservation.menuOrders.length > 0 ? `
-            <div class="border-t pt-3 mt-3">
-              <p class="font-semibold text-gray-700 mb-2">Pre-order Menu:</p>
-              <div class="space-y-1.5">
-                ${reservation.menuOrders.map(item => `
-                  <div class="flex justify-between text-sm">
-                    <span>${item.name} ×${item.qty}</span>
-                    <span class="font-semibold">${formatCurrency(item.price * item.qty)}</span>
-                  </div>
-                `).join('')}
-              </div>
-              <div class="border-t mt-2 pt-2 flex justify-between font-bold">
-                <span>Total</span>
-                <span class="text-forest">${formatCurrency(reservation.total)}</span>
-              </div>
-            </div>
-          ` : ''}
         </div>
       </div>
 
+      <!-- Menu Items -->
+      ${normalizedOrder.items.length > 0 ? `
+        <div class="card mb-6">
+          <h2 class="font-semibold text-lg mb-4 flex items-center gap-2">
+            <i data-lucide="shopping-bag" class="w-5 h-5 text-forest"></i>
+            Pre-order Menu
+          </h2>
+          <div class="space-y-2">
+            ${normalizedOrder.items.map(item => {
+              const variantText = formatVariants(item.variants);
+              return `
+                <div class="flex justify-between items-start py-2 border-b border-gray-100 last:border-0">
+                  <div class="flex-1">
+                    <p class="font-medium text-sm">${item.name} ×${item.qty}</p>
+                    ${variantText ? `<p class="text-xs text-forest mt-0.5">${variantText}</p>` : ''}
+                    <p class="text-xs text-gray-500">Rp ${item.price.toLocaleString('id-ID')} × ${item.qty}</p>
+                  </div>
+                  <span class="font-semibold text-sm">Rp ${(item.price * item.qty).toLocaleString('id-ID')}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <div class="border-t mt-3 pt-3 flex justify-between font-bold">
+            <span>Total</span>
+            <span class="text-forest">Rp ${normalizedOrder.total.toLocaleString('id-ID')}</span>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- Actions -->
       <div class="space-y-3">
-        <button onclick="downloadBarcode()" class="btn btn-primary btn-full">
-          <i data-lucide="download" class="w-5 h-5"></i>
-          Download Barcode
-        </button>
-        <button onclick="shareWhatsApp()" class="btn btn-secondary btn-full">
-          <i data-lucide="message-circle" class="w-5 h-5"></i>
-          Share via WhatsApp
+        <a href="#/tracking?id=${normalizedOrder.order_id}" class="btn btn-primary btn-full block text-center">
+          <i data-lucide="search" class="w-5 h-5 mr-2"></i>
+          Lacak Status Reservasi
+        </a>
+        <button onclick="contactRestaurant('${normalizedOrder.order_id}')" class="btn btn-secondary btn-full">
+          <i data-lucide="message-circle" class="w-5 h-5 mr-2"></i>
+          Hubungi Restoran
         </button>
         <a href="#/home" class="btn btn-secondary btn-full block text-center">
           Kembali ke Beranda
@@ -113,13 +163,7 @@ function renderConfirmationPage(container) {
     </main>
   `;
   
-  // Store reservation for download/share
-  window.currentReservation = reservation;
-  
-  // Generate QR code setelah DOM ready
-  setTimeout(() => {
-    generateQRCode(reservation.id);
-  }, 100);
+  if (window.lucide) lucide.createIcons();
 }
 
 /**
@@ -338,4 +382,20 @@ function formatDate(dateStr) {
 function formatCurrency(amount) {
   if (!amount && amount !== 0) return 'Rp 0';
   return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+function contactRestaurant(orderId) {
+  const message = `
+Halo Sban's Corner,
+
+Saya ingin menanyakan tentang reservasi saya:
+
+ID Reservasi: ${orderId}
+
+Terima kasih!
+  `.trim();
+  
+  const restaurantPhone = '6281234567890';
+  const url = `https://wa.me/${restaurantPhone}?text=${encodeURIComponent(message)}`;
+  window.open(url, '_blank');
 }

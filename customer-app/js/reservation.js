@@ -653,7 +653,7 @@ function submitReservation() {
   const name = document.getElementById('customerName').value.trim();
   const phone = document.getElementById('customerPhone').value.trim();
   
-  // ✅ VALIDASI DENGAN MODAL (pengganti showToast)
+  // Validasi
   if (!date || !time) {
     Modal.warning({
       title: 'Tanggal & Waktu Belum Dipilih',
@@ -688,7 +688,7 @@ function submitReservation() {
   if (!/^08\d{8,12}$/.test(phone)) {
     Modal.error({
       title: 'Nomor WhatsApp Tidak Valid',
-      message: 'Nomor WhatsApp harus dimulai dengan +62 dan terdiri dari 10-13 digit.',
+      message: 'Nomor WhatsApp harus dimulai dengan 08 dan terdiri dari 10-13 digit.',
       icon: 'phone',
       confirmText: 'Perbaiki'
     });
@@ -697,14 +697,14 @@ function submitReservation() {
   
   const table = getTableById(selectedTable);
   
-  // ✅ KONFIRMASI SEBELUM LANJUT
+  // ✅ KONFIRMASI - PASTIKAN onConfirm BENAR
   Modal.confirm({
     title: 'Konfirmasi Reservasi',
     message: 'Periksa kembali data reservasi Anda:',
     html: `
       <div class="bg-cream rounded-lg p-4 space-y-2 text-sm">
         <div class="flex justify-between">
-          <span class="text-gray-600">Tanggal:</span>
+          <span class="text-gray-600"> Tanggal:</span>
           <span class="font-semibold">${formatDate(date)}</span>
         </div>
         <div class="flex justify-between">
@@ -736,6 +736,8 @@ function submitReservation() {
     cancelText: 'Periksa Lagi',
     size: 'md',
     onConfirm: () => {
+      console.log('✅ Modal confirmed! Navigating to menu...');
+      
       const reservationData = {
         date,
         time,
@@ -749,7 +751,9 @@ function submitReservation() {
       };
       
       sessionStorage.setItem('pendingReservation', JSON.stringify(reservationData));
-      Router.navigate('/menu');
+      
+      // ✅ NAVIGASI KE HALAMAN MENU
+      Router.navigate('/reservation-menu');
     }
   });
 }

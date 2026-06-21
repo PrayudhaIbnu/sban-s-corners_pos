@@ -84,9 +84,12 @@ const Router = {
     
     header.innerHTML = `
       <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-        <a href="#/home" class="flex items-center gap-2 text-forest">
+        <a href="#/home" class="flex gap-2 items-center text-gray-600">
           ${showBack ? '<i data-lucide="arrow-left" class="w-5 h-5"></i>' : ''}
-          <span class="font-display text-xl font-bold">${title}</span>
+          <div class="grid">
+            <span class="font-display text-terra text-xl/6 font-bold">SBAN'S</span>
+            <span class="font-display text-terra text-xl/6 font-bold">CORNER</span>
+          </div>
         </a>
         ${step ? `
           <div class="flex items-center gap-2 text-sm text-gray-600">

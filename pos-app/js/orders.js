@@ -1,24 +1,33 @@
-// ===== ORDERS MODULE =====
+// ===== ORDERS MODULE (Unified) =====
 
 let currentOrderFilter = {
   search: "",
   status: "all",
   payment: "all",
   date: "all",
+  orderType: "all",
 };
 
-/**
- * Helper: Render Lucide icon dengan ukuran & class custom
- */
+// ===== HELPER FUNCTIONS =====
+
 function icon(name, className = "w-4 h-4") {
   return `<i data-lucide="${name}" class="${className}"></i>`;
 }
 
-/**
- * Helper: Render status badge dengan Lucide icon
- */
 function renderStatusBadge(status, size = "sm") {
-  const meta = STATUS_META[status] || STATUS_META.pending;
+  const safeStatus = status || "completed";
+
+  const STATUS_META_LOCAL = {
+    pending: { label: "Pending", icon: "clock", color: "orange" },
+    preparing: { label: "Preparing", icon: "chef-hat", color: "blue" },
+    ready: { label: "Ready", icon: "package-check", color: "green" },
+    completed: { label: "Completed", icon: "badge-check", color: "forest" },
+    cancelled: { label: "Cancelled", icon: "ban", color: "red" },
+    shipping: { label: "Shipping", icon: "truck", color: "purple" },
+  };
+
+  const meta = STATUS_META_LOCAL[safeStatus] || STATUS_META_LOCAL.completed;
+
   const sizeClass =
     size === "lg" ? "px-3 py-1.5 text-xs" : "px-2 py-0.5 text-[11px]";
   const iconSize = size === "lg" ? "w-3.5 h-3.5" : "w-3 h-3";
@@ -31,11 +40,17 @@ function renderStatusBadge(status, size = "sm") {
   `;
 }
 
-/**
- * Helper: Render payment badge dengan Lucide icon
- */
 function renderPaymentBadge(method) {
-  const meta = PAYMENT_META[method] || PAYMENT_META.CASH;
+  const safeMethod = method || "CASH";
+
+  const PAYMENT_META_LOCAL = {
+    CASH: { label: "Cash", icon: "banknote", color: "green" },
+    QRIS: { label: "QRIS", icon: "qr-code", color: "blue" },
+    TRANSFER: { label: "Transfer", icon: "building-2", color: "purple" },
+  };
+
+  const meta = PAYMENT_META_LOCAL[safeMethod] || PAYMENT_META_LOCAL.CASH;
+
   return `
     <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-${meta.color}-50 text-${meta.color}-700 border border-${meta.color}-100">
       ${icon(meta.icon, "w-3 h-3")}
@@ -45,36 +60,293 @@ function renderPaymentBadge(method) {
 }
 
 /**
- * Render halaman orders
+ * ✅ Helper: Normalisasi order dari berbagai sumber
  */
+function normalizeOrder(order) {
+  return {
+    order_id: order.order_id || order.id,
+    id: order.id || order.order_id,
+    date: order.date || order.createdAt || new Date().toISOString(),
+    items: order.items || order.menuOrders || [],
+    payment_method: order.payment_method || order.paymentMethod || "CASH",
+    status: order.status || "completed",
+    status_history: order.status_history || order.statusHistory || [],
+    total: order.total || 0,
+    amount_tendered: order.amount_tendered || order.total || 0,
+    change_due: order.change_due || 0,
+    orderType: order.orderType || "reservation",
+    customerName: order.customerName || "",
+    customerPhone: order.customerPhone || "",
+    deliveryAddress: order.deliveryAddress || "",
+    deliveryNotes: order.deliveryNotes || "",
+    tableNumber: order.tableNumber || null,
+    tableName: order.tableName || "",
+    guestCount: order.guestCount || 0,
+    source: order.source || "pos",
+  };
+}
+
+function getAllNormalizedOrders() {
+  const orders = StorageBridge.getOrders();
+  return orders.map(normalizeOrder);
+}
+
+// ===== MAIN FUNCTIONS =====
+
+function initOrders() {
+  StorageBridge.on("order:new", (order) => {
+    console.log("🔔 New order received:", order.id);
+    renderOrders();
+
+    const normalized = normalizeOrder(order);
+    if (normalized.orderType === "delivery") {
+      showOrderToast(
+        `Pesanan delivery baru: ${normalized.order_id}`,
+        "success",
+      );
+    } else {
+      showOrderToast(`Reservasi baru: ${normalized.order_id}`, "info");
+    }
+  });
+
+  StorageBridge.on("order:update", (order) => {
+    console.log("🔄 Order updated:", order.id);
+    renderOrders();
+  });
+
+  renderOrders();
+}
+
 function renderOrders() {
-  console.log("📋 Rendering orders, total:", transactions.length);
-
+  console.log("📋 Rendering orders...");
   updateOrdersStats();
-  updateOrdersBadge();
   renderOrdersList();
-
-  if (window.lucide) {
-    setTimeout(() => lucide.createIcons(), 50);
-  }
+  if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
 }
 
 /**
- * Update statistik di header - dengan Lucide icons
+ * ✅ Render action buttons dengan konfirmasi pembayaran
  */
+function renderOrderActions(order, footer) {
+  const meta = STATUS_META[order.status] || STATUS_META.completed;
+  const nextStatus = meta?.next;
+
+  let buttons = "";
+
+  // ✅ Tombol Konfirmasi Pembayaran (jika ada bukti dan belum diverifikasi)
+  if (order.paymentProof && order.paymentStatus === "pending_verification") {
+    buttons = `
+      <div class="space-y-2">
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p class="text-xs text-amber-800 font-semibold mb-2 flex items-center gap-1">
+            ${icon("shield-alert", "w-3.5 h-3.5")}
+            Konfirmasi Pembayaran
+          </p>
+          <p class="text-xs text-gray-600 mb-2">Verifikasi bukti pembayaran dan kirim notifikasi ke customer?</p>
+          
+          <div class="flex gap-2">
+            <button onclick="confirmOrderPayment('${order.order_id}', true)" 
+                    class="flex-1 py-2.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition flex items-center justify-center gap-2">
+              ${icon("check-circle", "w-4 h-4")}
+              Verifikasi & Kirim WA
+            </button>
+            <button onclick="confirmOrderPayment('${order.order_id}', false)" 
+                    class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition flex items-center justify-center gap-2">
+              ${icon("x-circle", "w-4 h-4")}
+              Tolak & Kirim WA
+            </button>
+          </div>
+        </div>
+        
+        ${
+          order.status !== "cancelled" && order.status !== "completed"
+            ? `
+          <div class="flex gap-2">
+            <button onclick="closeOrderDetail()" class="flex-1 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+              ${icon("x", "w-4 h-4")}
+              Tutup
+            </button>
+          </div>
+        `
+            : ""
+        }
+      </div>
+    `;
+  }
+  // Tombol untuk order yang sudah diverifikasi atau tanpa bukti
+  else if (order.status === "cancelled" || order.status === "completed") {
+    buttons = `
+      <div class="flex justify-between items-center gap-2">
+        <button onclick="printOrderReceipt()" class="flex-1 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-cream transition flex items-center justify-center gap-2">
+          ${icon("printer", "w-4 h-4")}
+          Cetak Struk
+        </button>
+        <button onclick="closeOrderDetail()" class="py-2.5 px-4 bg-forest border-2 text-white rounded-lg text-sm font-medium hover:bg-white hover:text-forest transition flex items-center justify-center gap-2">
+          ${icon("x", "w-4 h-4")}
+          Tutup
+        </button>
+      </div>
+    `;
+  } else {
+    // Tombol update status biasa
+    buttons = `
+      <div class="flex justify-between items-center gap-2">
+        ${
+          order.status !== "pending" &&
+          order.paymentStatus !== "pending_verification"
+            ? `
+          <button onclick="cancelOrder('${order.order_id}')" 
+                  class="py-2.5 px-4 bg-white border-2 border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition flex items-center justify-center gap-2">
+            ${icon("x-circle", "w-4 h-4")}
+            Batalkan
+          </button>
+        `
+            : ""
+        }
+        ${
+          nextStatus
+            ? `
+          <button onclick="advanceOrderStatus('${order.order_id}')" 
+                  class="flex-1 py-2.5 bg-gradient-to-r from-forest to-forestLight text-white rounded-lg text-sm font-semibold shadow-lg shadow-forest/30 hover:shadow-xl transition flex items-center justify-center gap-2">
+            ${icon(STATUS_META[nextStatus]?.icon || "check", "w-4 h-4")}
+            ${getActionButtonLabel(order.status)}
+          </button>
+        `
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  footer.innerHTML = buttons;
+  if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * ✅ Konfirmasi pembayaran dengan notifikasi WhatsApp
+ */
+function confirmOrderPayment(orderId, isVerified) {
+  const order = getAllNormalizedOrders().find((o) => o.order_id === orderId);
+  if (!order) {
+    Modal.error({
+      title: "Error",
+      message: "Pesanan tidak ditemukan",
+      icon: "x-circle",
+    });
+    return;
+  }
+
+  // Modal untuk input catatan admin
+  Modal.show({
+    type: "confirm",
+    title: isVerified ? "Verifikasi Pembayaran" : "Tolak Pembayaran",
+    message: isVerified
+      ? `Konfirmasi pembayaran untuk pesanan ${orderId}?`
+      : `Tolak pembayaran untuk pesanan ${orderId}?`,
+    html: `
+      <div class="space-y-3">
+        <div class="bg-cream rounded-lg p-3 text-sm">
+          <div class="flex justify-between mb-2">
+            <span class="text-gray-600">Customer:</span>
+            <span class="font-semibold">${order.customerName}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">WhatsApp:</span>
+            <span class="font-semibold">${order.customerPhone}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600">Total:</span>
+            <span class="font-bold text-forest">Rp ${(order.total || 0).toLocaleString("id-ID")}</span>
+          </div>
+        </div>
+        
+        <div>
+          <label class="input-label">Catatan untuk Customer (opsional)</label>
+          <textarea 
+            id="adminNote" 
+            rows="3" 
+            placeholder="${isVerified ? "Contoh: Reservasi Anda dikonfirmasi. Kami tunggu kedatangannya!" : "Contoh: Mohon maaf, bukti pembayaran tidak jelas. Silakan upload ulang."}"
+            class="input resize-none"
+          ></textarea>
+        </div>
+        
+        <div class="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <i data-lucide="message-circle" class="w-5 h-5 text-green-600 flex-shrink-0"></i>
+          <p class="text-sm text-green-800">
+            Notifikasi WhatsApp akan dikirim otomatis ke ${order.customerPhone}
+          </p>
+        </div>
+      </div>
+    `,
+    confirmText: isVerified ? "✅ Verifikasi & Kirim" : "❌ Tolak & Kirim",
+    cancelText: "Batal",
+    size: "md",
+    onConfirm: () => {
+      const adminNote =
+        document.getElementById("adminNote")?.value?.trim() || "";
+
+      // Update status pembayaran di StorageBridge
+      const updatedOrder = StorageBridge.confirmPayment(
+        orderId,
+        isVerified,
+        adminNote,
+      );
+
+      if (updatedOrder) {
+        // Kirim notifikasi WhatsApp
+        StorageBridge.sendWhatsAppNotification(
+          order.customerPhone,
+          order,
+          isVerified,
+          adminNote,
+        );
+
+        // Tampilkan success message
+        Modal.success({
+          title: isVerified
+            ? "Pembayaran Terverifikasi!"
+            : "Pembayaran Ditolak",
+          message: isVerified
+            ? `Status pesanan telah diupdate dan notifikasi WhatsApp telah dikirim ke ${order.customerPhone}`
+            : `Pesanan dibatalkan dan notifikasi telah dikirim ke ${order.customerPhone}`,
+          icon: isVerified ? "check-circle" : "x-circle",
+          confirmText: "Tutup",
+        });
+
+        // Refresh detail panel
+        setTimeout(() => {
+          openOrderDetail(orderId);
+        }, 1000);
+      } else {
+        Modal.error({
+          title: "Gagal",
+          message: "Terjadi kesalahan saat memproses pembayaran",
+          icon: "x-circle",
+        });
+      }
+    },
+  });
+
+  // Re-init icons setelah modal muncul
+  setTimeout(() => {
+    if (window.lucide) lucide.createIcons();
+  }, 100);
+}
+
 function updateOrdersStats() {
   const today = new Date().toDateString();
-  const todayOrders = transactions.filter(
+  const orders = getAllNormalizedOrders();
+
+  const todayOrders = orders.filter(
     (t) => new Date(t.date).toDateString() === today,
   );
+
   const activeOrders = todayOrders.filter(
-    (t) =>
-      t.status !== ORDER_STATUS.CANCELLED &&
-      t.status !== ORDER_STATUS.COMPLETED,
+    (t) => t.status !== "cancelled" && t.status !== "completed",
   );
-  const completedOrders = todayOrders.filter(
-    (t) => t.status === ORDER_STATUS.COMPLETED,
-  );
+
+  const completedOrders = todayOrders.filter((t) => t.status === "completed");
+
   const revenue = completedOrders.reduce((sum, t) => sum + (t.total || 0), 0);
 
   const elTotal = document.getElementById("ordersTotalCount");
@@ -89,32 +361,31 @@ function updateOrdersStats() {
     elRevenue.textContent = "Rp " + revenue.toLocaleString("id-ID");
 }
 
-/**
- * Filter orders berdasarkan kriteria
- */
 function filterOrders() {
   currentOrderFilter = {
     search: (document.getElementById("orderSearch")?.value || "").toLowerCase(),
     status: document.getElementById("orderStatusFilter")?.value || "all",
     payment: document.getElementById("orderPaymentFilter")?.value || "all",
     date: document.getElementById("orderDateFilter")?.value || "all",
+    orderType: document.getElementById("orderTypeFilter")?.value || "all",
   };
   renderOrdersList();
 }
 
-/**
- * Render list orders dengan filter
- */
 function renderOrdersList() {
   const container = document.getElementById("ordersList");
   if (!container) return;
 
-  let filtered = [...transactions].reverse();
+  let filtered = getAllNormalizedOrders().reverse();
 
-  // Apply filters
+  console.log("📦 Total orders loaded:", filtered.length);
+
   if (currentOrderFilter.search) {
-    filtered = filtered.filter((t) =>
-      t.order_id.toLowerCase().includes(currentOrderFilter.search),
+    filtered = filtered.filter(
+      (t) =>
+        t.order_id.toLowerCase().includes(currentOrderFilter.search) ||
+        (t.customerName &&
+          t.customerName.toLowerCase().includes(currentOrderFilter.search)),
     );
   }
 
@@ -128,12 +399,17 @@ function renderOrdersList() {
     );
   }
 
+  if (currentOrderFilter.orderType !== "all") {
+    filtered = filtered.filter(
+      (t) => t.orderType === currentOrderFilter.orderType,
+    );
+  }
+
   if (currentOrderFilter.date !== "all") {
     const now = new Date();
     filtered = filtered.filter((t) => {
       const tDate = new Date(t.date);
       const diffDays = Math.floor((now - tDate) / (1000 * 60 * 60 * 24));
-
       if (currentOrderFilter.date === "today") return diffDays < 1;
       if (currentOrderFilter.date === "week") return diffDays < 7;
       if (currentOrderFilter.date === "month") return diffDays < 30;
@@ -141,157 +417,164 @@ function renderOrdersList() {
     });
   }
 
-  // Empty state - full Lucide icons
   if (!filtered.length) {
     container.innerHTML = `
       <div class="bg-white rounded-2xl p-12 text-center border border-gray-100">
         <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-cream to-[#F9F6F2] flex items-center justify-center mb-4 border border-[#EFE7DE]">
-          ${icon("package-open", "w-9 h-9 text-forest/40")}
+          <i data-lucide="package-open" class="w-9 h-9 text-forest/40"></i>
         </div>
         <h3 class="font-brand text-lg font-bold text-forest mb-1">Tidak ada pesanan</h3>
         <p class="text-sm text-gray-500">
           ${
-            currentOrderFilter.search || currentOrderFilter.status !== "all"
+            currentOrderFilter.search ||
+            currentOrderFilter.status !== "all" ||
+            currentOrderFilter.orderType !== "all"
               ? "Coba ubah filter untuk melihat pesanan lain"
               : "Pesanan baru akan muncul di sini"
           }
         </p>
-        ${
-          currentOrderFilter.search || currentOrderFilter.status !== "all"
-            ? `
-          <button onclick="resetOrderFilters()" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-forest text-white rounded-lg text-sm font-medium hover:bg-forestLight transition">
-            ${icon("rotate-ccw", "w-3.5 h-3.5")}
-            Reset Filter
-          </button>
-        `
-            : ""
-        }
       </div>
     `;
     if (window.lucide) lucide.createIcons();
     return;
   }
 
-  // Render cards
   container.innerHTML = filtered
     .map((order) => renderOrderCard(order))
     .join("");
-
   if (window.lucide) lucide.createIcons();
 }
 
 /**
- * Reset semua filter
- */
-function resetOrderFilters() {
-  const search = document.getElementById("orderSearch");
-  const status = document.getElementById("orderStatusFilter");
-  const payment = document.getElementById("orderPaymentFilter");
-  const date = document.getElementById("orderDateFilter");
-
-  if (search) search.value = "";
-  if (status) status.value = "all";
-  if (payment) payment.value = "all";
-  if (date) date.value = "all";
-
-  filterOrders();
-}
-
-/**
- * Render satu card order - full Lucide icons
+ * Update renderOrderCard untuk menampilkan status pembayaran
  */
 function renderOrderCard(order) {
-  const meta = STATUS_META[order.status] || STATUS_META.pending;
+  const status = order.status || "pending";
   const itemCount = Array.isArray(order.items)
     ? order.items.reduce((sum, i) => sum + i.qty, 0)
     : 0;
-  const time = new Date(order.date).toLocaleTimeString("id-ID", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const date = new Date(order.date).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-  });
+  const time = new Date(order.date || order.createdAt).toLocaleTimeString(
+    "id-ID",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+    },
+  );
+  const date = new Date(order.date || order.createdAt).toLocaleDateString(
+    "id-ID",
+    {
+      day: "numeric",
+      month: "short",
+    },
+  );
 
-  // Ambil 3 item pertama untuk preview
   const previewItems = Array.isArray(order.items)
     ? order.items.slice(0, 3)
     : [];
+
+  // ✅ Badge status pembayaran (PRIORITAS TINGGI)
+  // ✅ TAMBAHKAN: Badge status pembayaran
+  let paymentBadge = "";
+  if (order.paymentProof) {
+    if (order.paymentStatus === "pending_verification") {
+      paymentBadge = `
+      <span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+        <i data-lucide="clock" class="w-3 h-3"></i>
+        Menunggu Verifikasi
+      </span>
+    `;
+    } else if (order.paymentStatus === "verified") {
+      paymentBadge = `
+      <span class="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+        <i data-lucide="check-circle" class="w-3 h-3"></i>
+        Terverifikasi
+      </span>
+    `;
+    } else if (order.paymentStatus === "rejected") {
+      paymentBadge = `
+      <span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+        <i data-lucide="x-circle" class="w-3 h-3"></i>
+        Ditolak
+      </span>
+    `;
+    }
+  }
+
+  // Badge tipe order
+  const orderTypeBadge =
+    order.orderType === "delivery"
+      ? `<span class="bg-terra/10 text-terra text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+         <i data-lucide="truck" class="w-3 h-3"></i>
+         DELIVERY
+       </span>`
+      : `<span class="bg-forest/10 text-forest text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+         <i data-lucide="calendar" class="w-3 h-3"></i>
+         RESERVASI
+       </span>`;
+
+  const customerInfo =
+    order.orderType === "delivery" && order.customerName
+      ? `<p class="text-xs text-gray-500 mt-1 truncate">👤 ${order.customerName}</p>`
+      : order.orderType === "reservation" && order.tableName
+        ? `<p class="text-xs text-gray-500 mt-1">🪑 ${order.tableName} • ${order.guestCount || 0} org</p>`
+        : "";
 
   return `
     <div class="order-card bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-forest/20 transition overflow-hidden cursor-pointer group" 
          onclick="openOrderDetail('${order.order_id}')">
       <div class="p-4">
-        <div class="flex items-start justify-between gap-3 mb-3">
-          <!-- Order Info -->
+        <div class="flex items-start justify-between gap-2 mb-3">
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-2 flex-wrap">
-              <span class="font-mono font-bold text-forest text-sm">${order.order_id}</span>
-              ${renderStatusBadge(order.status)}
+            <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+              <span class="font-mono font-bold text-forest text-xs">${order.order_id}</span>
+              ${renderStatusBadge(status)}
+              ${orderTypeBadge}
+              ${paymentBadge}
             </div>
-            <div class="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+            <div class="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
               <span class="flex items-center gap-1">
-                ${icon("calendar", "w-3 h-3")}
+                <i data-lucide="calendar" class="w-3 h-3"></i>
                 ${date}
               </span>
               <span class="flex items-center gap-1">
-                ${icon("clock", "w-3 h-3")}
+                <i data-lucide="clock" class="w-3 h-3"></i>
                 ${time}
               </span>
               ${renderPaymentBadge(order.payment_method)}
             </div>
+            ${customerInfo}
           </div>
           
-          <!-- Total -->
           <div class="text-right flex-shrink-0">
-            <p class="font-brand text-lg font-bold text-terra">Rp ${(order.total || 0).toLocaleString("id-ID")}</p>
+            <p class="font-brand text-base font-bold text-terra">Rp ${(order.total || 0).toLocaleString("id-ID")}</p>
             <p class="text-[10px] text-gray-400 flex items-center gap-1 justify-end mt-0.5">
-              ${icon("shopping-bag", "w-3 h-3")}
+              <i data-lucide="shopping-bag" class="w-3 h-3"></i>
               ${itemCount} item${itemCount > 1 ? "s" : ""}
             </p>
           </div>
         </div>
         
-        <!-- Items Preview -->
-        <div class="flex items-center gap-2 pt-3 border-t border-dashed border-gray-100">
-          <div class="flex -space-x-2">
-            ${previewItems
-              .map((item) => {
-                const menuItem =
-                  typeof getMenuItemById === "function"
-                    ? getMenuItemById(item.id)
-                    : null;
-              })
-              .join("")}
-            ${
-              itemCount > 3
-                ? `
-              <div class="w-8 h-8 rounded-full bg-forest/10 border-2 border-white flex items-center justify-center text-xs font-bold text-forest">
-                +${itemCount - 3}
-              </div>
-            `
-                : ""
-            }
+        ${
+          order.paymentProof && order.paymentStatus === "pending_verification"
+            ? `
+          <div class="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-xs text-amber-800">
+            <i data-lucide="shield-alert" class="w-4 h-4 flex-shrink-0"></i>
+            <span class="font-semibold">Perlu verifikasi pembayaran</span>
           </div>
-          <p class="text-xs text-gray-500 truncate flex-1">
-            ${previewItems.map((i) => i.name).join(", ")}${itemCount > 3 ? "..." : ""}
-          </p>
-          <div class="w-7 h-7 rounded-full bg-cream flex items-center justify-center group-hover:bg-forest group-hover:text-white transition">
-            ${icon("arrow-right", "w-3.5 h-3.5")}
-          </div>
-        </div>
+        `
+            : ""
+        }
       </div>
     </div>
   `;
 }
 
-/**
- * Buka detail order di side panel
- */
 function openOrderDetail(orderId) {
-  const order = getOrderById(orderId);
-  if (!order) return;
+  const order = getAllNormalizedOrders().find((o) => o.order_id === orderId);
+  if (!order) {
+    console.error("Order not found:", orderId);
+    return;
+  }
 
   const panel = document.getElementById("orderDetailPanel");
   const overlay = document.getElementById("orderDetailOverlay");
@@ -303,15 +586,61 @@ function openOrderDetail(orderId) {
 
   if (headerId) headerId.textContent = order.order_id;
 
-  const meta = STATUS_META[order.status] || STATUS_META.pending;
   const subtotal = Array.isArray(order.items)
     ? order.items.reduce((sum, i) => sum + i.price * i.qty, 0)
     : 0;
   const tax = Math.round(subtotal * 0.1);
 
-  // Render content - full Lucide icons
+  const deliveryInfo =
+    order.orderType === "delivery"
+      ? `
+    <div class="bg-terra/5 border border-terra/20 rounded-lg p-3 mb-4">
+      <h4 class="font-semibold text-sm text-terra mb-2 flex items-center gap-2">
+        ${icon("truck", "w-4 h-4")}
+        Info Pengiriman
+      </h4>
+      <div class="space-y-1 text-xs">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Nama:</span>
+          <span class="font-semibold">${order.customerName || "-"}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">WhatsApp:</span>
+          <span class="font-semibold">${order.customerPhone || "-"}</span>
+        </div>
+        <div>
+          <span class="text-gray-600">Alamat:</span>
+          <p class="font-semibold mt-1">${order.deliveryAddress || "-"}</p>
+          ${order.deliveryNotes ? `<p class="text-gray-500 italic mt-1">Catatan: ${order.deliveryNotes}</p>` : ""}
+        </div>
+      </div>
+    </div>
+  `
+      : "";
+
+  const reservationInfo =
+    order.orderType === "reservation" && order.tableNumber
+      ? `
+    <div class="bg-forest/5 border border-forest/20 rounded-lg p-3 mb-4">
+      <h4 class="font-semibold text-sm text-forest mb-2 flex items-center gap-2">
+        ${icon("calendar", "w-4 h-4")}
+        Info Reservasi
+      </h4>
+      <div class="space-y-1 text-xs">
+        <div class="flex justify-between">
+          <span class="text-gray-600">Meja:</span>
+          <span class="font-semibold">${order.tableName || "Meja " + order.tableNumber}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-600">Tamu:</span>
+          <span class="font-semibold">${order.guestCount || 0} orang</span>
+        </div>
+      </div>
+    </div>
+  `
+      : "";
+
   content.innerHTML = `
-    <!-- Status Timeline -->
     <div class="bg-cream rounded-xl p-4">
       <div class="flex items-center justify-between mb-3">
         <h4 class="font-semibold text-sm text-forest flex items-center gap-2">
@@ -321,11 +650,17 @@ function openOrderDetail(orderId) {
         ${renderStatusBadge(order.status, "lg")}
       </div>
       
-      <!-- Status Timeline Visual -->
       <div class="flex items-start justify-between mb-4 relative pt-2">
         ${["pending", "preparing", "ready", "completed"]
           .map((s, i, arr) => {
-            const sMeta = STATUS_META[s];
+            const STATUS_META_LOCAL = {
+              pending: { label: "Pending", icon: "clock" },
+              preparing: { label: "Preparing", icon: "chef-hat" },
+              ready: { label: "Ready", icon: "package-check" },
+              completed: { label: "Completed", icon: "badge-check" },
+              cancelled: { label: "Cancelled", icon: "ban" },
+            };
+            const sMeta = STATUS_META_LOCAL[s];
             const isActive = order.status === s;
             const isPast =
               arr.indexOf(order.status) > i || order.status === "completed";
@@ -371,7 +706,9 @@ function openOrderDetail(orderId) {
       }
     </div>
     
-    <!-- Order Items -->
+    ${deliveryInfo}
+    ${reservationInfo}
+    
     <div>
       <h4 class="font-semibold text-sm text-forest mb-3 flex items-center gap-2">
         ${icon("shopping-bag", "w-4 h-4")}
@@ -383,15 +720,12 @@ function openOrderDetail(orderId) {
       <div class="space-y-2">
         ${(order.items || [])
           .map((item) => {
-            const menuItem =
-              typeof getMenuItemById === "function"
-                ? getMenuItemById(item.id)
-                : null;
-            const itemImage = menuItem?.image || "";
             const itemTotal = item.price * item.qty;
-
             return `
-            <div class="flex items-center gap-3 bg-white rounded-lg p-2.5 border border-gray-100 hover:border-forest/20 transition">
+            <div class="flex items-center gap-3 bg-white rounded-lg p-2.5 border border-gray-100">
+              <div class="w-12 h-12 rounded-lg bg-cream flex-shrink-0 flex items-center justify-center">
+                ${icon("utensils", "w-5 h-5 text-gray-400")}
+              </div>
               <div class="flex-1 min-w-0">
                 <p class="font-medium text-sm truncate">${item.name}</p>
                 <div class="flex items-center gap-1.5 mt-0.5">
@@ -408,7 +742,6 @@ function openOrderDetail(orderId) {
       </div>
     </div>
     
-    <!-- Payment Summary -->
     <div class="bg-gradient-to-br from-[#F9F6F2] to-[#FDFBF7] rounded-xl p-4 border border-[#EFE7DE] space-y-2">
       <h4 class="font-semibold text-sm text-forest mb-2 flex items-center gap-2">
         ${icon("receipt", "w-4 h-4")}
@@ -429,66 +762,8 @@ function openOrderDetail(orderId) {
       </div>
       <div class="border-t border-dashed border-[#E5DDD3] my-2"></div>
       <div class="flex justify-between text-sm items-center">
-        <span class="text-gray-500 flex items-center gap-1.5">
-          ${renderPaymentBadge(order.payment_method)}
-        </span>
-        <span class="font-medium">Rp ${(order.amount_tendered || order.total || 0).toLocaleString("id-ID")}</span>
-      </div>
-      ${
-        order.payment_method === "CASH"
-          ? `
-        <div class="flex justify-between text-sm bg-green-50 -mx-2 px-2 py-1.5 rounded-lg items-center">
-          <span class="text-green-700 font-medium flex items-center gap-1.5">
-            ${icon("coins", "w-3.5 h-3.5")}
-            Kembalian
-          </span>
-          <span class="font-bold text-green-700">Rp ${(order.change_due || 0).toLocaleString("id-ID")}</span>
-        </div>
-      `
-          : ""
-      }
-    </div>
-    
-    <!-- Status History -->
-    <div>
-      <h4 class="font-semibold text-sm text-forest mb-3 flex items-center gap-2">
-        ${icon("history", "w-4 h-4")}
-        Riwayat Status
-      </h4>
-      <div class="space-y-0">
-        ${(order.status_history || [])
-          .slice()
-          .reverse()
-          .map((h, i, arr) => {
-            const hMeta = STATUS_META[h.status] || STATUS_META.pending;
-            const hTime = new Date(h.timestamp).toLocaleString("id-ID", {
-              day: "numeric",
-              month: "short",
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            const isFirst = i === 0;
-
-            return `
-            <div class="flex gap-3 ${!isFirst ? "opacity-70" : ""}">
-              <div class="flex flex-col items-center">
-                <div class="w-8 h-8 rounded-full bg-${hMeta.color}-100 text-${hMeta.color}-700 flex items-center justify-center border-2 border-white shadow-sm">
-                  ${icon(hMeta.icon, "w-4 h-4")}
-                </div>
-                ${i < arr.length - 1 ? '<div class="w-0.5 flex-1 bg-gray-200 my-1 min-h-[16px]"></div>' : ""}
-              </div>
-              <div class="flex-1 pb-3">
-                <p class="font-medium text-sm">${hMeta.label}</p>
-                <p class="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                  ${icon("clock", "w-3 h-3")}
-                  ${hTime}
-                </p>
-                ${h.note ? `<p class="text-xs text-gray-400 mt-0.5 italic">${h.note}</p>` : ""}
-              </div>
-            </div>
-          `;
-          })
-          .join("")}
+        <span class="text-gray-500">Metode</span>
+        <span class="font-medium">${order.payment_method}</span>
       </div>
     </div>
   `;
@@ -501,26 +776,28 @@ function openOrderDetail(orderId) {
   if (window.lucide) lucide.createIcons();
 }
 
-/**
- * Render action buttons di footer detail panel - full Lucide icons
- */
 function renderOrderActions(order, footer) {
-  const meta = STATUS_META[order.status];
-  const nextStatus = meta?.next;
+  const STATUS_META_LOCAL = {
+    pending: { next: "preparing" },
+    preparing: { next: "ready" },
+    ready: { next: "completed" },
+    completed: { next: null },
+    cancelled: { next: null },
+  };
+
+  const meta = STATUS_META_LOCAL[order.status] || { next: null };
+  const nextStatus = meta.next;
 
   let buttons = "";
 
-  if (
-    order.status === ORDER_STATUS.CANCELLED ||
-    order.status === ORDER_STATUS.COMPLETED
-  ) {
+  if (order.status === "cancelled" || order.status === "completed") {
     buttons = `
     <div class="flex justify-between items-center gap-2">
       <button onclick="printOrderReceipt()" class="flex-1 py-3 px-4 bg-white border border-gray-200 rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:bg-cream transition">
         ${icon("printer", "w-4 h-4")}
         Cetak Struk
       </button>
-      <button onclick="closeOrderDetail()" class="py-3 px-4 bg-forest border-2 text-white rounded-xl font-medium text-sm hover:bg-white hover:text-forest transition flex items-center justify-center gap-2">
+      <button onclick="closeOrderDetail()" class="py-3 px-4 bg-forest text-white rounded-xl font-medium text-sm hover:bg-forestLight transition flex items-center justify-center gap-2">
         ${icon("x", "w-4 h-4")}
         Tutup
       </button>
@@ -528,27 +805,27 @@ function renderOrderActions(order, footer) {
     `;
   } else {
     buttons = `
-      ${
-        order.status !== ORDER_STATUS.PENDING
-          ? `
       <div class="flex justify-between items-center gap-2">
-        <button onclick="cancelOrder('${order.order_id}')" class="py-3 px-4 bg-white border-2 border-red-200 text-red-600 rounded-xl font-medium text-sm hover:bg-red-50 transition flex items-center justify-center gap-2" title="Batalkan pesanan">
-          ${icon("x-circle", "w-4 h-4")}
-          Batalkan
-        </button>
-      `
-          : ""
-      }
-      ${
-        nextStatus
-          ? `
-        <button onclick="advanceOrderStatus('${order.order_id}')" class="flex-1 py-3 px-4 bg-gradient-to-r from-forest to-forestLight text-white rounded-xl font-semibold text-sm shadow-lg shadow-forest/30 hover:shadow-xl transition flex items-center justify-center gap-2">
-          ${icon(STATUS_META[nextStatus].icon, "w-4 h-4")}
-          ${getActionButtonLabel(order.status)}
-        </button>
-      `
-          : ""
-      }
+        ${
+          order.status !== "pending"
+            ? `
+          <button onclick="cancelOrder('${order.order_id}')" class="py-3 px-4 bg-white border-2 border-red-200 text-red-600 rounded-xl font-medium text-sm hover:bg-red-50 transition flex items-center justify-center gap-2">
+            ${icon("x-circle", "w-4 h-4")}
+            Batalkan
+          </button>
+        `
+            : ""
+        }
+        ${
+          nextStatus
+            ? `
+          <button onclick="advanceOrderStatus('${order.order_id}')" class="flex-1 py-3 px-4 bg-gradient-to-r from-forest to-forestLight text-white rounded-xl font-semibold text-sm shadow-lg shadow-forest/30 hover:shadow-xl transition flex items-center justify-center gap-2">
+            ${icon(STATUS_META_LOCAL[nextStatus]?.icon || "check", "w-4 h-4")}
+            ${getActionButtonLabel(order.status)}
+          </button>
+        `
+            : ""
+        }
       </div>
     `;
   }
@@ -557,9 +834,6 @@ function renderOrderActions(order, footer) {
   if (window.lucide) lucide.createIcons();
 }
 
-/**
- * Label untuk tombol aksi berdasarkan status
- */
 function getActionButtonLabel(currentStatus) {
   const labels = {
     pending: "Mulai Siapkan",
@@ -569,14 +843,17 @@ function getActionButtonLabel(currentStatus) {
   return labels[currentStatus] || "Update Status";
 }
 
-/**
- * Advance order ke status berikutnya
- */
 function advanceOrderStatus(orderId) {
-  const order = getOrderById(orderId);
+  const order = getAllNormalizedOrders().find((o) => o.order_id === orderId);
   if (!order) return;
 
-  const nextStatus = STATUS_META[order.status]?.next;
+  const STATUS_NEXT = {
+    pending: "preparing",
+    preparing: "ready",
+    ready: "completed",
+  };
+
+  const nextStatus = STATUS_NEXT[order.status];
   if (!nextStatus) return;
 
   const notes = {
@@ -585,19 +862,17 @@ function advanceOrderStatus(orderId) {
     completed: "Pesanan selesai",
   };
 
-  const success = updateOrderStatus(orderId, nextStatus, notes[nextStatus]);
+  const success = StorageBridge.updateOrderStatus(
+    order.id,
+    nextStatus,
+    notes[nextStatus],
+  );
   if (success) {
     openOrderDetail(orderId);
-    showOrderToast(
-      `Status diubah ke ${STATUS_META[nextStatus].label}`,
-      "success",
-    );
+    showOrderToast(`Status diubah ke ${nextStatus}`, "success");
   }
 }
 
-/**
- * Cancel order
- */
 function cancelOrder(orderId) {
   Modal.confirm({
     title: "Batalkan Pesanan",
@@ -605,23 +880,27 @@ function cancelOrder(orderId) {
     type: "warning",
     html: `
       <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
-        <p class="text-red-800">Stock produk akan dikembalikan otomatis.</p>
-        <p class="text-xs text-red-600 mt-1">Tindakan ini tidak dapat dibatalkan.</p>
+        <p class="text-red-800">Tindakan ini tidak dapat dibatalkan.</p>
       </div>
     `,
     confirmText: "Ya, Batalkan",
     cancelText: "Tidak",
     onConfirm: () => {
-      const success = updateOrderStatus(
-        orderId,
-        ORDER_STATUS.CANCELLED,
+      const order = getAllNormalizedOrders().find(
+        (o) => o.order_id === orderId,
+      );
+      if (!order) return;
+
+      const success = StorageBridge.updateOrderStatus(
+        order.id,
+        "cancelled",
         "Pesanan dibatalkan oleh kasir",
       );
       if (success) {
         closeOrderDetail();
         Modal.success({
           title: "Pesanan Dibatalkan",
-          message: "Stock produk telah dikembalikan",
+          message: "Status telah diperbarui",
           icon: "x-circle",
         });
       }
@@ -629,25 +908,17 @@ function cancelOrder(orderId) {
   });
 }
 
-/**
- * Tutup detail panel
- */
 function closeOrderDetail() {
   const panel = document.getElementById("orderDetailPanel");
   const overlay = document.getElementById("orderDetailOverlay");
-
   if (panel) panel.classList.add("translate-x-full");
   if (overlay) overlay.classList.add("hidden");
 }
 
-/**
- * Print receipt untuk order tertentu
- */
 function printOrderReceipt() {
   const orderId = document.getElementById("detailOrderId")?.textContent;
   if (!orderId) return;
-
-  const order = getOrderById(orderId);
+  const order = getAllNormalizedOrders().find((o) => o.order_id === orderId);
   if (!order) return;
 
   showReceipt(
@@ -660,35 +931,17 @@ function printOrderReceipt() {
   );
 }
 
-/**
- * Refresh orders
- */
 function refreshOrders() {
   renderOrders();
   showOrderToast("Data pesanan diperbarui", "info");
 }
 
-/**
- * Toast notification - full Lucide icons
- */
 function showOrderToast(message, type = "info") {
   const config = {
-    success: {
-      color: "bg-green-500",
-      icon: "check-circle-2",
-    },
-    warning: {
-      color: "bg-orange-500",
-      icon: "alert-triangle",
-    },
-    info: {
-      color: "bg-blue-500",
-      icon: "info",
-    },
-    error: {
-      color: "bg-red-500",
-      icon: "x-circle",
-    },
+    success: { color: "bg-green-500", icon: "check-circle-2" },
+    warning: { color: "bg-orange-500", icon: "alert-triangle" },
+    info: { color: "bg-blue-500", icon: "info" },
+    error: { color: "bg-red-500", icon: "x-circle" },
   };
 
   const { color, icon: iconName } = config[type] || config.info;

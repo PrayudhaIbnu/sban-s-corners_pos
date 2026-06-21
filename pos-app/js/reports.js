@@ -5,49 +5,15 @@ let customDateFrom = null;
 let customDateTo = null;
 
 /**
- * Helper: Icon renderer
+ * ✅ Helper: Ambil semua orders yang sudah dinormalisasi
  */
-function reportIcon(name, className = 'w-4 h-4') {
-  return `<i data-lucide="${name}" class="${className}"></i>`;
+function getReportOrders() {
+  const orders = StorageBridge.getOrders();
+  return orders.map(normalizeOrder);
 }
 
 /**
- * Helper: Format tanggal
- */
-function formatDate(date, format = 'full') {
-  const d = new Date(date);
-  if (format === 'full') {
-    return d.toLocaleDateString('id-ID', {
-      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-    });
-  }
-  if (format === 'short') {
-    return d.toLocaleDateString('id-ID', {
-      day: 'numeric', month: 'short'
-    });
-  }
-  if (format === 'day') {
-    return d.toLocaleDateString('id-ID', { weekday: 'short' });
-  }
-  if (format === 'datetime') {
-    return d.toLocaleString('id-ID', {
-      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-    });
-  }
-  return d.toLocaleDateString('id-ID');
-}
-
-/**
- * Helper: Format angka singkat
- */
-function formatShortNumber(num) {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'jt';
-  if (num >= 1000) return (num / 1000).toFixed(0) + 'rb';
-  return num.toString();
-}
-
-/**
- * Hitung rentang tanggal berdasarkan periode
+ * Hitung rentang tanggal
  */
 function getDateRange(period) {
   const now = new Date();
@@ -60,45 +26,38 @@ function getDateRange(period) {
       to = new Date(today);
       to.setHours(23, 59, 59, 999);
       break;
-
     case 'yesterday':
       from = new Date(today);
       from.setDate(from.getDate() - 1);
       to = new Date(from);
       to.setHours(23, 59, 59, 999);
       break;
-
     case 'week':
       from = new Date(today);
       from.setDate(from.getDate() - 6);
       to = new Date(today);
       to.setHours(23, 59, 59, 999);
       break;
-
     case 'month':
       from = new Date(today);
       from.setDate(from.getDate() - 29);
       to = new Date(today);
       to.setHours(23, 59, 59, 999);
       break;
-
     case 'year':
       from = new Date(now.getFullYear(), 0, 1);
       to = new Date(today);
       to.setHours(23, 59, 59, 999);
       break;
-
     case 'all':
       from = new Date(2000, 0, 1);
       to = new Date(2100, 0, 1);
       break;
-
     case 'custom':
       from = customDateFrom ? new Date(customDateFrom) : new Date(today);
       to = customDateTo ? new Date(customDateTo) : new Date(today);
       to.setHours(23, 59, 59, 999);
       break;
-
     default:
       from = new Date(today);
       to = new Date(today);
@@ -109,38 +68,31 @@ function getDateRange(period) {
 }
 
 /**
- * Filter transaksi berdasarkan periode
+ * ✅ Filter transaksi - PAKAI getReportOrders
  */
 function getFilteredTransactions() {
   const { from, to } = getDateRange(currentReportPeriod);
+  const orders = getReportOrders();
   
-  return transactions.filter(t => {
-    // Jangan hitung yang cancelled
+  return orders.filter(t => {
     if (t.status === 'cancelled') return false;
-    
     const tDate = new Date(t.date);
     return tDate >= from && tDate <= to;
   });
 }
 
-/**
- * Set periode laporan
- */
 function setReportPeriod(period) {
   currentReportPeriod = period;
   
-  // Update button states
   document.querySelectorAll('.period-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.period === period);
   });
   
-  // Toggle custom date range
   const customRange = document.getElementById('customDateRange');
   if (customRange) {
     customRange.classList.toggle('hidden', period !== 'custom');
   }
   
-  // Jika custom, set default date
   if (period === 'custom') {
     const today = new Date().toISOString().split('T')[0];
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -155,16 +107,10 @@ function setReportPeriod(period) {
     customDateTo = toInput?.value || today;
   }
   
-  // Update period display text
   updatePeriodDisplay();
-  
-  // Render
   renderReports();
 }
 
-/**
- * Apply custom date range
- */
 function applyCustomDateRange() {
   const fromInput = document.getElementById('reportDateFrom');
   const toInput = document.getElementById('reportDateTo');
@@ -187,9 +133,6 @@ function applyCustomDateRange() {
   renderReports();
 }
 
-/**
- * Reset custom date range
- */
 function resetCustomDateRange() {
   const fromInput = document.getElementById('reportDateFrom');
   const toInput = document.getElementById('reportDateTo');
@@ -203,9 +146,6 @@ function resetCustomDateRange() {
   setReportPeriod('today');
 }
 
-/**
- * Update display periode aktif
- */
 function updatePeriodDisplay() {
   const display = document.getElementById('activePeriodText');
   if (!display) return;
@@ -219,14 +159,18 @@ function updatePeriodDisplay() {
     month: 'Menampilkan data 30 hari terakhir',
     year: `Menampilkan data tahun ${new Date().getFullYear()}`,
     all: 'Menampilkan semua data',
-    custom: `Rentang: ${formatDate(from, 'short')} - ${formatDate(to, 'short')}`
+    custom: `Rentang: ${formatDateShort(from)} - ${formatDateShort(to)}`
   };
   
   display.textContent = periodLabels[currentReportPeriod] || '';
 }
 
+function formatDateShort(date) {
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+}
+
 /**
- * Render halaman reports
+ * ✅ Render reports - PAKAI getFilteredTransactions
  */
 function renderReports() {
   const filtered = getFilteredTransactions();
@@ -244,9 +188,6 @@ function renderReports() {
   }
 }
 
-/**
- * Render statistik utama
- */
 function renderReportStats(filtered) {
   const totalRevenue = filtered.reduce((sum, t) => sum + (t.total || 0), 0);
   const totalTx = filtered.length;
@@ -255,7 +196,6 @@ function renderReportStats(filtered) {
     ? Math.max(...filtered.map(t => t.total || 0)) 
     : 0;
   
-  // Hitung trend (bandingkan dengan periode sebelumnya)
   const trend = calculateTrend();
   
   const elRevenue = document.getElementById('reportTotalRevenue');
@@ -284,20 +224,17 @@ function renderReportStats(filtered) {
   }
 }
 
-/**
- * Hitung trend persentase
- */
 function calculateTrend() {
   const { from, to } = getDateRange(currentReportPeriod);
   const duration = to - from;
   
-  // Periode sebelumnya
   const prevTo = new Date(from.getTime() - 1);
   const prevFrom = new Date(prevTo.getTime() - duration);
   
   const currentRevenue = getFilteredTransactions().reduce((sum, t) => sum + (t.total || 0), 0);
   
-  const prevTransactions = transactions.filter(t => {
+  const allOrders = getReportOrders();
+  const prevTransactions = allOrders.filter(t => {
     if (t.status === 'cancelled') return false;
     const tDate = new Date(t.date);
     return tDate >= prevFrom && tDate <= prevTo;
@@ -312,9 +249,6 @@ function calculateTrend() {
   return Math.round(((currentRevenue - prevRevenue) / prevRevenue) * 100);
 }
 
-/**
- * Render breakdown metode pembayaran
- */
 function renderPaymentBreakdown(filtered) {
   const container = document.getElementById('paymentBreakdown');
   const chartContainer = document.getElementById('paymentChart');
@@ -322,19 +256,15 @@ function renderPaymentBreakdown(filtered) {
   if (!container || !chartContainer) return;
   
   if (!filtered.length) {
-    container.innerHTML = `
-      <div class="text-center py-6">
-        <p class="text-sm text-gray-400">Belum ada data</p>
-      </div>
-    `;
+    container.innerHTML = `<div class="text-center py-6"><p class="text-sm text-gray-400">Belum ada data</p></div>`;
     chartContainer.innerHTML = `<p class="text-sm text-gray-400">-</p>`;
     return;
   }
   
-  // Hitung per metode pembayaran
   const paymentStats = {
     CASH: { count: 0, total: 0, icon: 'banknote', color: 'green' },
-    QRIS: { count: 0, total: 0, icon: 'qr-code', color: 'blue' }
+    QRIS: { count: 0, total: 0, icon: 'qr-code', color: 'blue' },
+    TRANSFER: { count: 0, total: 0, icon: 'building-2', color: 'purple' }
   };
   
   filtered.forEach(t => {
@@ -347,16 +277,14 @@ function renderPaymentBreakdown(filtered) {
   
   const totalAll = Object.values(paymentStats).reduce((sum, s) => sum + s.total, 0);
   
-  // Render breakdown list
   container.innerHTML = Object.entries(paymentStats).map(([method, stats]) => {
+    if (stats.count === 0) return '';
     const percentage = totalAll > 0 ? Math.round((stats.total / totalAll) * 100) : 0;
-    const meta = typeof PAYMENT_META !== 'undefined' ? PAYMENT_META[method] : null;
-    const iconName = meta?.icon || (method === 'QRIS' ? 'qr-code' : 'banknote');
     
     return `
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-${stats.color}-50 text-${stats.color}-600 flex items-center justify-center flex-shrink-0">
-          ${reportIcon(iconName, 'w-5 h-5')}
+          <i data-lucide="${stats.icon}" class="w-5 h-5"></i>
         </div>
         <div class="flex-1 min-w-0">
           <div class="flex items-center justify-between mb-1">
@@ -373,7 +301,8 @@ function renderPaymentBreakdown(filtered) {
     `;
   }).join('');
   
-  // Render donut chart (CSS-based)
+  if (window.lucide) lucide.createIcons();
+  
   const cashPct = totalAll > 0 ? (paymentStats.CASH.total / totalAll) * 100 : 0;
   const qrisPct = totalAll > 0 ? (paymentStats.QRIS.total / totalAll) * 100 : 0;
   
@@ -382,8 +311,7 @@ function renderPaymentBreakdown(filtered) {
       <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="40" fill="none" stroke="#E5E7EB" stroke-width="12"/>
         <circle cx="50" cy="50" r="40" fill="none" stroke="#22C55E" stroke-width="12"
-                stroke-dasharray="${cashPct * 2.51} ${251 - cashPct * 2.51}"
-                stroke-dashoffset="0"/>
+                stroke-dasharray="${cashPct * 2.51} ${251 - cashPct * 2.51}"/>
         <circle cx="50" cy="50" r="40" fill="none" stroke="#3B82F6" stroke-width="12"
                 stroke-dasharray="${qrisPct * 2.51} ${251 - qrisPct * 2.51}"
                 stroke-dashoffset="${-cashPct * 2.51}"/>
@@ -397,9 +325,6 @@ function renderPaymentBreakdown(filtered) {
   `;
 }
 
-/**
- * Render sales chart
- */
 function renderSalesChart(filtered) {
   const chart = document.getElementById('salesChart');
   const subtitle = document.getElementById('chartSubtitle');
@@ -409,22 +334,20 @@ function renderSalesChart(filtered) {
     chart.innerHTML = `
       <div class="w-full flex items-center justify-center text-gray-400 text-sm">
         <div class="text-center">
-          ${reportIcon('bar-chart', 'w-10 h-10 mx-auto mb-2 opacity-30')}
+          <i data-lucide="bar-chart" class="w-10 h-10 mx-auto mb-2 opacity-30"></i>
           <p>Belum ada data untuk ditampilkan</p>
         </div>
       </div>
     `;
     if (subtitle) subtitle.textContent = 'Tidak ada data';
+    if (window.lucide) lucide.createIcons();
     return;
   }
   
   const { from, to } = getDateRange(currentReportPeriod);
   const diffDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
   
-  // Group by date
   const dailyData = {};
-  
-  // Initialize all days in range
   for (let i = 0; i < diffDays; i++) {
     const d = new Date(from);
     d.setDate(d.getDate() + i);
@@ -432,7 +355,6 @@ function renderSalesChart(filtered) {
     dailyData[key] = { total: 0, count: 0, date: d };
   }
   
-  // Fill with transaction data
   filtered.forEach(t => {
     const key = new Date(t.date).toISOString().split('T')[0];
     if (dailyData[key]) {
@@ -444,21 +366,13 @@ function renderSalesChart(filtered) {
   const days = Object.values(dailyData);
   const max = Math.max(...days.map(d => d.total), 1);
   
-  // Update subtitle
   if (subtitle) {
-    if (diffDays === 1) {
-      subtitle.textContent = `Penjualan per jam - ${formatDate(from, 'short')}`;
-    } else if (diffDays <= 7) {
-      subtitle.textContent = `Penjualan harian - ${diffDays} hari terakhir`;
-    } else if (diffDays <= 31) {
-      subtitle.textContent = `Penjualan harian - ${diffDays} hari`;
-    } else {
-      subtitle.textContent = `Penjualan bulanan - ${diffDays} hari`;
-    }
+    if (diffDays === 1) subtitle.textContent = `Penjualan hari ini`;
+    else if (diffDays <= 7) subtitle.textContent = `Penjualan ${diffDays} hari terakhir`;
+    else subtitle.textContent = `Penjualan ${diffDays} hari`;
   }
   
-  // Render bars
-  chart.innerHTML = days.map((d, i) => {
+  chart.innerHTML = days.map((d) => {
     const height = Math.max(4, (d.total / max) * 100);
     const isToday = d.date.toDateString() === new Date().toDateString();
     const hasData = d.total > 0;
@@ -468,31 +382,24 @@ function renderSalesChart(filtered) {
     
     return `
       <div class="flex-1 flex flex-col justify-end items-center group relative min-w-0">
-        <!-- Tooltip -->
         <div class="hidden group-hover:block absolute bottom-full mb-2 bg-forest text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap z-10 shadow-lg pointer-events-none">
-          <p class="font-semibold">${formatDate(d.date, 'full')}</p>
+          <p class="font-semibold">${d.date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           <p>Rp ${d.total.toLocaleString('id-ID')}</p>
           <p class="text-white/70">${d.count} transaksi</p>
-          <div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-forest"></div>
         </div>
         
-        <!-- Value label -->
         ${hasData ? `
           <p class="text-[9px] font-semibold text-forest mb-1 truncate max-w-full">
-            ${formatShortNumber(d.total)}
+            ${d.total >= 1000000 ? (d.total/1000000).toFixed(1) + 'jt' : 
+              d.total >= 1000 ? Math.round(d.total/1000) + 'rb' : d.total}
           </p>
         ` : ''}
         
-        <!-- Bar -->
         <div class="w-full rounded-t-md transition-all duration-500 ${
-          isToday 
-            ? 'bg-gradient-to-t from-terra to-terraLight' 
-            : hasData 
-              ? 'bg-gradient-to-t from-forest/70 to-forestLight/70' 
-              : 'bg-gray-100'
+          isToday ? 'bg-gradient-to-t from-terra to-terraLight' : 
+          hasData ? 'bg-gradient-to-t from-forest/70 to-forestLight/70' : 'bg-gray-100'
         }" style="height: ${height}%"></div>
         
-        <!-- Label -->
         <span class="text-[10px] mt-1.5 font-medium text-center ${
           isToday ? 'text-terra font-bold' : 'text-gray-500'
         } truncate max-w-full">
@@ -503,9 +410,6 @@ function renderSalesChart(filtered) {
   }).join('');
 }
 
-/**
- * Render top products
- */
 function renderTopProducts(filtered) {
   const container = document.getElementById('topProducts');
   if (!container) return;
@@ -513,14 +417,14 @@ function renderTopProducts(filtered) {
   if (!filtered.length) {
     container.innerHTML = `
       <div class="text-center py-8">
-        ${reportIcon('package', 'w-10 h-10 mx-auto mb-2 text-gray-300')}
+        <i data-lucide="package" class="w-10 h-10 mx-auto mb-2 text-gray-300"></i>
         <p class="text-sm text-gray-400">Belum ada data produk</p>
       </div>
     `;
+    if (window.lucide) lucide.createIcons();
     return;
   }
   
-  // Count items
   const itemCount = {};
   const itemRevenue = {};
   
@@ -534,11 +438,7 @@ function renderTopProducts(filtered) {
   });
   
   const items = Object.entries(itemCount)
-    .map(([name, qty]) => ({
-      name,
-      qty,
-      revenue: itemRevenue[name] || 0
-    }))
+    .map(([name, qty]) => ({ name, qty, revenue: itemRevenue[name] || 0 }))
     .sort((a, b) => b.qty - a.qty)
     .slice(0, 5);
   
@@ -548,23 +448,30 @@ function renderTopProducts(filtered) {
     const menuItem = typeof getMenuItemById === 'function' 
       ? menuItems.find(m => m.name === item.name) 
       : null;
-    const image = menuItem?.image || '';
+    const emoji = menuItem?.emoji || '🍽️';
+    const image = menuItem?.images || menuItem?.image || '';
     const percentage = Math.round((item.qty / maxQty) * 100);
-        
+    
+    const medals = ['🥇', '🥈', '🥉'];
+    
     return `
       <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-cream/50 transition">
-        <!-- Rank -->
         <div class="w-8 h-8 rounded-lg ${
           index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white' :
           index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white' :
           index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' :
           'bg-gray-100 text-gray-600'
         } flex items-center justify-center font-bold text-sm flex-shrink-0">
-          ${index + 1}
+          ${index < 3 ? medals[index] : index + 1}
         </div>
         
+        <div class="w-11 h-11 rounded-lg bg-cream flex-shrink-0 overflow-hidden flex items-center justify-center">
+          ${image ? `
+            <img src="${image}" alt="${item.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="hidden w-full h-full items-center justify-center text-xl">${emoji}</div>
+          ` : `<span class="text-xl">${emoji}</span>`}
+        </div>
         
-        <!-- Info -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center justify-between mb-1">
             <p class="font-semibold text-sm truncate">${item.name}</p>
@@ -581,16 +488,11 @@ function renderTopProducts(filtered) {
   }).join('');
 }
 
-/**
- * Render tabel transaksi
- */
 function renderReportsTable(filtered) {
   const reportsTable = document.getElementById('reportsTable');
   const txCount = document.getElementById('txCount');
   
-  if (txCount) {
-    txCount.textContent = `${filtered.length} transaksi`;
-  }
+  if (txCount) txCount.textContent = `${filtered.length} transaksi`;
   
   if (!reportsTable) return;
   
@@ -600,7 +502,7 @@ function renderReportsTable(filtered) {
         <td colspan="6" class="px-4 py-12 text-center">
           <div class="flex flex-col items-center">
             <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-              ${reportIcon('file-x', 'w-6 h-6 text-gray-400')}
+              <i data-lucide="file-x" class="w-6 h-6 text-gray-400"></i>
             </div>
             <p class="text-gray-500 font-medium">Tidak ada transaksi</p>
             <p class="text-xs text-gray-400 mt-1">Tidak ada data pada periode ini</p>
@@ -616,36 +518,48 @@ function renderReportsTable(filtered) {
     const itemCount = Array.isArray(t.items) 
       ? t.items.reduce((sum, i) => sum + i.qty, 0) 
       : 0;
-    const paymentIcon = t.payment_method === 'QRIS' ? 'qr-code' : 'banknote';
-    const paymentColor = t.payment_method === 'QRIS' ? 'blue' : 'green';
-    const statusMeta = typeof STATUS_META !== 'undefined' 
-      ? STATUS_META[t.status] || STATUS_META.completed 
-      : { label: 'Completed', icon: 'check-circle-2', color: 'green' };
+    const paymentIcon = t.payment_method === 'QRIS' ? 'qr-code' : 
+                       t.payment_method === 'TRANSFER' ? 'building-2' : 'banknote';
+    const paymentColor = t.payment_method === 'QRIS' ? 'blue' : 
+                        t.payment_method === 'TRANSFER' ? 'purple' : 'green';
+    const statusMeta = STATUS_META[t.status] || STATUS_META.completed;
+    
+    // Badge tipe order
+    const orderTypeBadge = t.orderType === 'delivery' 
+      ? `<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-terra/10 text-terra">
+           <i data-lucide="truck" class="w-3 h-3"></i>Delivery
+         </span>`
+      : `<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-forest/10 text-forest">
+           <i data-lucide="calendar" class="w-3 h-3"></i>Reservasi
+         </span>`;
     
     return `
       <tr class="border-t border-gray-100 hover:bg-cream/30 transition cursor-pointer" 
           onclick="openOrderDetail('${t.order_id}')">
         <td class="px-4 py-3">
-          <span class="font-mono text-xs font-semibold text-forest">${t.order_id}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-xs font-semibold text-forest">${t.order_id}</span>
+            ${orderTypeBadge}
+          </div>
         </td>
         <td class="px-4 py-3">
-          <div class="text-sm">${formatDate(t.date, 'datetime')}</div>
+          <div class="text-sm">${new Date(t.date).toLocaleString('id-ID')}</div>
         </td>
         <td class="px-4 py-3">
           <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded-full">
-            ${reportIcon('shopping-bag', 'w-3 h-3')}
+            <i data-lucide="shopping-bag" class="w-3 h-3"></i>
             ${itemCount} item${itemCount > 1 ? 's' : ''}
           </span>
         </td>
         <td class="px-4 py-3">
           <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-${paymentColor}-50 text-${paymentColor}-700 border border-${paymentColor}-100">
-            ${reportIcon(paymentIcon, 'w-3 h-3')}
-            ${t.payment_method || 'CASH'}
+            <i data-lucide="${paymentIcon}" class="w-3 h-3"></i>
+            ${t.payment_method}
           </span>
         </td>
         <td class="px-4 py-3">
           <span class="status-badge status-${statusMeta.color} px-2 py-0.5 text-[11px] inline-flex items-center gap-1">
-            ${reportIcon(statusMeta.icon, 'w-3 h-3')}
+            <i data-lucide="${statusMeta.icon}" class="w-3 h-3"></i>
             ${statusMeta.label}
           </span>
         </td>
@@ -659,9 +573,6 @@ function renderReportsTable(filtered) {
   if (window.lucide) lucide.createIcons();
 }
 
-/**
- * Export laporan ke CSV
- */
 function exportReportCSV() {
   const filtered = getFilteredTransactions();
   
@@ -670,8 +581,7 @@ function exportReportCSV() {
     return;
   }
   
-  // Build CSV
-  const headers = ['Order ID', 'Tanggal', 'Items', 'Total', 'Pembayaran', 'Status'];
+  const headers = ['Order ID', 'Tanggal', 'Tipe', 'Items', 'Total', 'Pembayaran', 'Status'];
   const rows = filtered.map(t => {
     const itemCount = Array.isArray(t.items) 
       ? t.items.reduce((sum, i) => sum + i.qty, 0) 
@@ -679,6 +589,7 @@ function exportReportCSV() {
     return [
       t.order_id,
       new Date(t.date).toLocaleString('id-ID'),
+      t.orderType || 'reservation',
       itemCount,
       t.total || 0,
       t.payment_method || 'CASH',
@@ -691,7 +602,6 @@ function exportReportCSV() {
     ...rows.map(row => row.join(','))
   ].join('\n');
   
-  // Download
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -702,7 +612,6 @@ function exportReportCSV() {
   a.click();
   URL.revokeObjectURL(url);
   
-  // Toast
   if (typeof showOrderToast === 'function') {
     showOrderToast(`Laporan berhasil di-export (${filtered.length} transaksi)`, 'success');
   }

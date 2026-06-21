@@ -1,5 +1,8 @@
-// ===== DASHBOARD =====
+// ===== DASHBOARD MODULE =====
 
+/**
+ * Render halaman dashboard
+ */
 function renderDashboard() {
   console.log("📊 Dashboard render, Transactions:", transactions.length);
 
@@ -14,7 +17,7 @@ function renderDashboard() {
     });
   }
 
-  // Hitung statistik
+  // ✅ Hitung statistik (fungsi lokal, bukan dari StorageBridge)
   const stats = getDashboardStats();
 
   // Update stats cards
@@ -42,17 +45,87 @@ function renderDashboard() {
 }
 
 /**
+ * ✅ Hitung statistik dashboard
+ * Menggabungkan data dari transactions (POS) dan orders (customer-app)
+ */
+function getDashboardStats() {
+  const today = new Date().toDateString();
+  const allOrders = getAllOrders();
+  
+  // Filter transaksi hari ini (kecuali yang dibatalkan)
+  const todayTx = allOrders.filter((t) => {
+    const tDate = new Date(t.createdAt || t.date).toDateString();
+    const isCancelled = t.status === 'cancelled' || 
+                       t.status === 'delivery_cancelled';
+    return tDate === today && !isCancelled;
+  });
+  
+  const totalSales = todayTx.reduce((sum, t) => sum + (t.total || 0), 0);
+  const totalOrders = todayTx.length;
+  const avgOrder = totalOrders > 0 ? Math.round(totalSales / totalOrders) : 0;
+  
+  // Hitung item terlaris
+  const itemCount = {};
+  allOrders.forEach((t) => {
+    if (t.status === 'cancelled') return;
+    
+    const items = t.items || t.menuOrders || [];
+    if (Array.isArray(items)) {
+      items.forEach((item) => {
+        itemCount[item.name] = (itemCount[item.name] || 0) + item.qty;
+      });
+    }
+  });
+  
+  const topItem = Object.entries(itemCount).sort((a, b) => b[1] - a[1])[0];
+  
+  return {
+    todaySales: totalSales,
+    todayOrders: totalOrders,
+    avgOrder: avgOrder,
+    topItem: topItem ? topItem[0] : '-',
+    topItemQty: topItem ? topItem[1] : 0,
+    totalTransactions: allOrders.length,
+    allTimeSales: allOrders.reduce((sum, t) => sum + (t.total || 0), 0),
+  };
+}
+
+/**
+ * ✅ Helper: Ambil semua orders dari localStorage
+ * Menggabungkan data POS (sbans_orders) dan customer-app
+ */
+function getAllOrders() {
+  // Prioritas: sbans_orders (format baru)
+  const ordersData = localStorage.getItem('sbans_orders');
+  if (ordersData) {
+    const orders = JSON.parse(ordersData);
+    console.log('📊 Loaded', orders.length, 'orders from sbans_orders');
+    return orders;
+  }
+  
+  // Fallback: gunakan array transactions global
+  console.log('📊 Using fallback transactions array');
+  return transactions || [];
+}
+
+/**
  * Render daftar item populer
  */
 function renderPopularItems() {
   const container = document.getElementById("popularItems");
   if (!container) return;
 
+  // ✅ Ambil semua orders
+  const allOrders = getAllOrders();
+
   // Hitung qty per item
   const itemCount = {};
-  transactions.forEach((t) => {
-    if (Array.isArray(t.items)) {
-      t.items.forEach((item) => {
+  allOrders.forEach((t) => {
+    if (t.status === "cancelled") return;
+
+    const items = t.items || t.menuOrders || [];
+    if (Array.isArray(items)) {
+      items.forEach((item) => {
         itemCount[item.name] = (itemCount[item.name] || 0) + item.qty;
       });
     }
@@ -84,16 +157,25 @@ function renderPopularItems() {
         typeof getMenuItemById === "function"
           ? menuItems.find((m) => m.name === item[0])
           : null;
+
+      // ✅ Tampilkan gambar produk jika ada
+      const productImage = menuItem?.images
+        ? `<img src="${menuItem.images}" alt="${item[0]}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+           <div class="hidden w-full h-full items-center justify-center text-lg">🍽️</div>`
+        : `<i data-lucide="utensils" class="text-gray-400"></i>`;
+
       return `
       <div class="flex items-center gap-3 py-2.5 group">
         <!-- Rank -->
-        <div class="w-6 h-6 rounded-full ${index === 0 ? "bg-terra text-white" : "bg-gray-100 text-gray-500"} flex items-center justify-center text-xs font-bold flex-shrink-0">
+        <div class="w-6 h-6 rounded-full ${
+          index === 0 ? "bg-terra text-white" : "bg-gray-100 text-gray-500"
+        } flex items-center justify-center text-xs font-bold flex-shrink-0">
           ${index + 1}
         </div>
         
-        <!-- images -->
-        <div class="w-9 h-9 rounded-lg bg-cream flex items-center justify-center text-lg flex-shrink-0">
-          <i data-lucide="utensils" class="text-gray-400"></i>
+        <!-- Product Image -->
+        <div class="w-9 h-9 rounded-lg bg-cream flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+          ${productImage}
         </div>
         
         <!-- Info -->
@@ -112,6 +194,8 @@ function renderPopularItems() {
     `;
     })
     .join("");
+
+  if (window.lucide) lucide.createIcons();
 }
 
 /**
@@ -121,7 +205,9 @@ function renderRecentTransactions() {
   const container = document.getElementById("recentTransactions");
   if (!container) return;
 
-  const recent = [...transactions].reverse().slice(0, 5);
+  // ✅ Ambil semua orders
+  const allOrders = getAllOrders();
+  const recent = [...allOrders].reverse().slice(0, 5);
 
   if (!recent.length) {
     container.innerHTML = `
@@ -144,39 +230,41 @@ function renderRecentTransactions() {
           <tr class="text-left text-xs text-gray-500 border-b border-gray-100">
             <th class="pb-2 font-medium">Order ID</th>
             <th class="pb-2 font-medium">Time</th>
-            <th class="pb-2 font-medium">Items</th>
-            <th class="pb-2 font-medium">Payment</th>
+            <th class="pb-2 font-medium">Type</th>
             <th class="pb-2 text-right font-medium">Total</th>
           </tr>
         </thead>
         <tbody>
           ${recent
             .map((t) => {
-              const itemCount = Array.isArray(t.items)
-                ? t.items.reduce((sum, i) => sum + i.qty, 0)
-                : 0;
-              const time = new Date(t.date).toLocaleTimeString("id-ID", {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
+              const time = new Date(t.createdAt || t.date).toLocaleTimeString(
+                "id-ID",
+                {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                },
+              );
+
+              // ✅ Badge tipe order
+              const orderType = t.orderType || "reservation";
+              const typeBadge =
+                orderType === "delivery"
+                  ? `<span class="inline-flex items-center gap-1 text-xs bg-terra/10 text-terra px-2 py-1 rounded-full">
+                       <i data-lucide="truck" class="w-3 h-3"></i>
+                       Delivery
+                     </span>`
+                  : `<span class="inline-flex items-center gap-1 text-xs bg-forest/10 text-forest px-2 py-1 rounded-full">
+                       <i data-lucide="calendar" class="w-3 h-3"></i>
+                       Reservasi
+                     </span>`;
 
               return `
               <tr class="border-b border-gray-50 hover:bg-cream/30 transition">
                 <td class="py-3">
-                  <span class="font-mono font-semibold text-forest text-xs">${t.order_id}</span>
+                  <span class="font-mono font-semibold text-forest text-xs">${t.id || t.order_id}</span>
                 </td>
                 <td class="py-3 text-gray-500 text-xs">${time}</td>
-                <td class="py-3">
-                  <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded-full">
-                    <i data-lucide="shopping-bag" class="w-3 h-3"></i>
-                    ${itemCount} item${itemCount > 1 ? "s" : ""}
-                  </span>
-                </td>
-                <td class="py-3">
-                  <span class="inline-flex items-center gap-1 text-xs">
-                    <span class="text-gray-600">${t.payment_method || "CASH"}</span>
-                  </span>
-                </td>
+                <td class="py-3">${typeBadge}</td>
                 <td class="py-3 text-right">
                   <span class="font-bold text-terra">Rp ${(t.total || 0).toLocaleString("id-ID")}</span>
                 </td>
@@ -212,10 +300,14 @@ function renderWeeklyChart() {
   const weekly = Array(7).fill(0);
   const weeklyCount = Array(7).fill(0);
 
-  // Hitung penjualan per hari (7 hari terakhir)
+  // ✅ Ambil semua orders
+  const allOrders = getAllOrders();
   const now = new Date();
-  transactions.forEach((t) => {
-    const tDate = new Date(t.date);
+
+  allOrders.forEach((t) => {
+    if (t.status === "cancelled") return;
+
+    const tDate = new Date(t.createdAt || t.date);
     const diffDays = Math.floor((now - tDate) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 7) {

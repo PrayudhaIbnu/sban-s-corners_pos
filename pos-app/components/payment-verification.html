@@ -1,0 +1,113 @@
+<!-- Payment Verification Page -->
+<section id="page-payment-verification" class="page hidden">
+  
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="font-brand text-2xl text-forest flex items-center gap-2">
+        <i data-lucide="shield-check" class="w-6 h-6"></i>
+        Verifikasi Pembayaran
+      </h1>
+      <p class="text-sm text-gray-500 mt-1">Periksa dan verifikasi bukti pembayaran dari pelanggan</p>
+    </div>
+    <button onclick="refreshPaymentVerification()" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-cream transition">
+      <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500">Menunggu Verifikasi</p>
+      <p class="font-brand text-xl font-bold text-amber-600" id="pendingCount">0</p>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-9 h-9 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
+          <i data-lucide="check-circle" class="w-4 h-4"></i>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500">Terverifikasi Hari Ini</p>
+      <p class="font-brand text-xl font-bold text-green-600" id="verifiedTodayCount">0</p>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+          <i data-lucide="x-circle" class="w-4 h-4"></i>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500">Ditolak Hari Ini</p>
+      <p class="font-brand text-xl font-bold text-red-600" id="rejectedTodayCount">0</p>
+    </div>
+
+    <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-9 h-9 rounded-lg bg-forest/10 text-forest flex items-center justify-center">
+          <i data-lucide="wallet" class="w-4 h-4"></i>
+        </div>
+      </div>
+      <p class="text-xs text-gray-500">Total Terverifikasi</p>
+      <p class="font-brand text-xl font-bold text-forest" id="totalVerifiedAmount">Rp 0</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm mb-4">
+    <div class="flex flex-wrap gap-3 items-center">
+      <div class="relative flex-1 min-w-[200px]">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input 
+          type="text" 
+          id="paymentSearch" 
+          placeholder="Cari Order ID atau Nama..." 
+          class="w-full pl-10 pr-4 py-2 bg-cream border border-gray-200 rounded-lg text-sm outline-none focus:border-forest"
+          oninput="filterPaymentVerification()">
+      </div>
+
+      <div class="relative">
+        <i data-lucide="filter" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+        <select id="paymentStatusFilter" onchange="filterPaymentVerification()" class="pl-9 pr-8 py-2 bg-cream border border-gray-200 rounded-lg text-sm outline-none focus:border-forest appearance-none cursor-pointer">
+          <option value="all">Semua Status</option>
+          <option value="pending_verification">Menunggu Verifikasi</option>
+          <option value="verified">Terverifikasi</option>
+          <option value="rejected">Ditolak</option>
+        </select>
+        <i data-lucide="chevron-down" class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+      </div>
+
+      <div class="relative">
+        <i data-lucide="layers" class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+        <select id="paymentTypeFilter" onchange="filterPaymentVerification()" class="pl-9 pr-8 py-2 bg-cream border border-gray-200 rounded-lg text-sm outline-none focus:border-forest appearance-none cursor-pointer">
+          <option value="all">Semua Tipe</option>
+          <option value="reservation">Reservasi</option>
+          <option value="delivery">Delivery</option>
+        </select>
+        <i data-lucide="chevron-down" class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment List -->
+  <div id="paymentVerificationList" class="space-y-3">
+    <!-- Will be populated by JS -->
+  </div>
+
+</section>
+
+<style>
+  .payment-proof-img {
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .payment-proof-img:hover {
+    transform: scale(1.05);
+  }
+</style>

@@ -446,7 +446,7 @@ Terima kasih!
   `.trim();
 
   // Ganti dengan nomor WhatsApp restoran yang asli
-  const restaurantPhone = "6285117421917";
+  const restaurantPhone = "6281313549719";
   const url = `https://wa.me/${restaurantPhone}?text=${encodeURIComponent(message)}`;
   window.open(url, "_blank");
 }

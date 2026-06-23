@@ -395,7 +395,7 @@ ID Reservasi: ${orderId}
 Terima kasih!
   `.trim();
   
-  const restaurantPhone = '6281234567890';
+  const restaurantPhone = '6281313549719';
   const url = `https://wa.me/${restaurantPhone}?text=${encodeURIComponent(message)}`;
   window.open(url, '_blank');
 }

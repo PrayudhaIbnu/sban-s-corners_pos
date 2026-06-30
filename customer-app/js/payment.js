@@ -527,16 +527,10 @@ function confirmPayment() {
 }
 
 function processReservationPayment() {
-  console.log('🔄 Processing reservation payment...');
-  
   const reservationData = JSON.parse(sessionStorage.getItem('pendingReservation') || 'null');
   const menuCart = JSON.parse(sessionStorage.getItem('menuCart') || '[]');
   
-  console.log('📦 Reservation data:', reservationData);
-  console.log('🛒 Menu cart:', menuCart);
-  
   if (!reservationData) {
-    console.error('❌ Reservation data not found');
     Modal.error({ 
       title: 'Error', 
       message: 'Data reservasi tidak ditemukan',
@@ -550,10 +544,7 @@ function processReservationPayment() {
   const tax = Math.round(subtotal * 0.1);
   const total = subtotal + tax;
   
-  // ✅ Generate ID dengan format yang benar
-  const orderId = 'RES-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase();
-  
-  console.log('🆔 Generated Order ID:', orderId);
+  const orderId = generateId('RES');
   
   const reservation = {
     id: orderId,
@@ -575,37 +566,28 @@ function processReservationPayment() {
     total: total,
     paymentMethod: paymentMethod,
     payment_method: paymentMethod,
-    paymentStatus: 'pending_verification',
+    
+    // ✅ UBAH: Langsung verified & confirmed (tidak perlu admin verifikasi)
+    paymentStatus: 'verified',  // Dari 'pending_verification' jadi 'verified'
     paymentProof: paymentProof,
-    status: 'pending',
+    status: 'confirmed',  // Dari 'pending' jadi 'confirmed'
+    
     statusHistory: [{
-      status: 'pending',
+      status: 'confirmed',
       timestamp: new Date().toISOString(),
-      note: 'Menunggu verifikasi bukti pembayaran'
+      note: 'Reservasi dikonfirmasi otomatis setelah upload bukti pembayaran'
     }],
     createdAt: new Date().toISOString(),
     source: 'customer-app'
   };
   
-  console.log('💾 Saving reservation:', reservation);
-  
   try {
-    // ✅ Simpan ke StorageBridge
     StorageBridge.saveReservation(reservation);
-    console.log('✅ Saved to StorageBridge');
-    
-    // ✅ Simpan ke sessionStorage
     sessionStorage.setItem('confirmedOrder', JSON.stringify(reservation));
-    console.log('✅ Saved to sessionStorage');
-    
-    // ✅ Clear pending data
     sessionStorage.removeItem('pendingReservation');
     sessionStorage.removeItem('menuCart');
     paymentProof = null;
     
-    console.log('✅ Navigating to confirmation page');
-    
-    // ✅ Navigate
     Router.navigate('/reservation-confirmation');
     
   } catch (error) {
@@ -619,16 +601,10 @@ function processReservationPayment() {
 }
 
 function processDeliveryPayment() {
-  console.log('🔄 Processing delivery payment...');
-  
   const deliveryData = JSON.parse(sessionStorage.getItem('orderDeliveryData') || 'null');
   const orderCart = JSON.parse(sessionStorage.getItem('orderCart') || '[]');
   
-  console.log('📦 Delivery data:', deliveryData);
-  console.log('🛒 Order cart:', orderCart);
-  
   if (!deliveryData) {
-    console.error('❌ Delivery data not found');
     Modal.error({ 
       title: 'Error', 
       message: 'Data pengiriman tidak ditemukan',
@@ -642,9 +618,7 @@ function processDeliveryPayment() {
   const tax = Math.round(subtotal * 0.1);
   const total = subtotal + tax;
   
-  const orderId = 'ORD-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 4).toUpperCase();
-  
-  console.log('🆔 Generated Order ID:', orderId);
+  const orderId = generateId('ORD');
   
   const order = {
     id: orderId,
@@ -660,32 +634,27 @@ function processDeliveryPayment() {
     total: total,
     paymentMethod: paymentMethod,
     payment_method: paymentMethod,
-    paymentStatus: 'pending_verification',
+    
+    // ✅ UBAH: Langsung verified & preparing (tidak perlu admin verifikasi)
+    paymentStatus: 'verified',  // Dari 'pending_verification' jadi 'verified'
     paymentProof: paymentProof,
-    status: 'pending',
+    status: 'preparing',  // Dari 'pending' jadi 'preparing'
+    
     statusHistory: [{
-      status: 'pending',
+      status: 'preparing',
       timestamp: new Date().toISOString(),
-      note: 'Menunggu verifikasi bukti pembayaran'
+      note: 'Pesanan dikonfirmasi otomatis dan sedang diproses'
     }],
     createdAt: new Date().toISOString(),
     source: 'customer-app'
   };
   
-  console.log('💾 Saving order:', order);
-  
   try {
     StorageBridge.saveDeliveryOrder(order);
-    console.log('✅ Saved to StorageBridge');
-    
     sessionStorage.setItem('confirmedOrder', JSON.stringify(order));
-    console.log('✅ Saved to sessionStorage');
-    
     sessionStorage.removeItem('orderDeliveryData');
     sessionStorage.removeItem('orderCart');
     paymentProof = null;
-    
-    console.log('✅ Navigating to tracking page');
     
     Router.navigate('/order-tracking');
     

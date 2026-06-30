@@ -1,121 +1,148 @@
 <!-- ===== MOBILE HEADER ===== -->
-<header class="lg:hidden fixed top-0 left-0 right-0 z-40 bg-forest h-14 flex items-center justify-between px-4 shadow-md">
-  <button onclick="toggleSidebar()" class="text-white" aria-label="Toggle menu">
+<header class="lg:hidden fixed top-0 left-0 right-0 z-40 bg-forest h-16 flex items-center justify-between px-5 shadow-lg backdrop-blur-sm bg-opacity-95">
+  <button onclick="toggleSidebar()" class="text-white/80 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10" aria-label="Buka menu navigasi">
     <i data-lucide="menu" class="w-6 h-6"></i>
   </button>
 
-  <h2 class="font-brand text-lg text-white" id="sidebarBrandMobile">
+  <h2 class="font-brand text-xl tracking-wide text-white font-bold">
     SBAN'S CORNER
   </h2>
 
   <!-- Tombol Cart Mobile -->
-  <button
-    id="headerCartBtn"
-    onclick="openCartFromHeader()"
-    class="text-white relative hidden"
-    aria-label="Lihat keranjang">
-    <i data-lucide="shopping-cart" class="w-6 h-6"></i>
-    <span
-      id="headerCartBadge"
-      class="absolute -top-2 -right-2 bg-terra text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-forest">
-      0
-    </span>
-  </button>
-
-  <!-- Spacer untuk keseimbangan layout -->
-  <div id="headerCartSpacer" class="w-6"></div>
+  <div class="relative w-8 flex justify-end">
+    <button
+      id="headerCartBtn"
+      onclick="openCartFromHeader()"
+      class="text-white/80 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10 hidden"
+      aria-label="Lihat keranjang belanja">
+      <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+      <span
+        id="headerCartBadge"
+        class="absolute -top-1 -right-1 bg-terra text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-forest animate-bounce-short">
+        0
+      </span>
+    </button>
+  </div>
 </header>
 
 <!-- ===== SIDEBAR OVERLAY ===== -->
 <div
   id="sidebarOverlay"
   onclick="closeSidebar()"
-  class="hidden fixed inset-0 bg-black/40 z-40 transition-opacity"></div>
+  class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 opacity-0 lg:hidden"></div>
 
 <!-- ===== SIDEBAR NAVIGATION ===== -->
 <nav
   id="sidebar"
-  class="fixed lg:static top-0 left-0 h-full lg:h-auto w-56 bg-forest flex-shrink-0 flex flex-col p-4 z-50 -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out pt-16 lg:pt-4">
+  class="fixed lg:static top-0 left-0 h-full lg:h-screen w-64 bg-forest flex-shrink-0 flex flex-col z-50 -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out shadow-2xl lg:shadow-none pt-16 lg:pt-0">
 
   <!-- Brand (Desktop Only) -->
-  <h2 class="font-brand text-xl text-white mb-8 px-2 hidden lg:block" id="sidebarBrand">
-    SBAN'S CORNER
-  </h2>
+  <div class="hidden lg:flex items-center gap-3 px-6 py-7 border-b border-white/10 bg-creamDark mb-2">
+    <h2 class="font-brand text-xl tracking-wide text-terra font-bold">SBAN'S<br />CORNER</h2>
+  </div>
 
   <!-- Menu Items -->
-  <div class="space-y-1 flex-1 overflow-y-auto">
-    <button onclick="navigate('dashboard')" data-nav="dashboard" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 hover:bg-white/10 transition text-sm font-medium">
-      <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+  <div class="flex-1 overflow-y-auto px-3 space-y-1 custom-scrollbar">
+    
+    <p class="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40 font-semibold mt-2">Menu Utama</p>
+    
+    <button onclick="navigate('dashboard')" data-nav="dashboard" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm font-medium group">
+      <i data-lucide="layout-dashboard" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
       <span>Dashboard</span>
     </button>
 
-    <button onclick="navigate('payment-verification')" data-nav="payment-verification" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 hover:bg-white/10 transition text-sm font-medium relative">
-      <i data-lucide="shield-check" class="w-4 h-4"></i>
-      <span>Verifikasi Pembayaran</span>
-      <span id="paymentVerificationBadge" class="hidden ml-auto bg-terra text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">0</span>
+    <button onclick="navigate('table-management')" data-nav="table-management" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm font-medium group relative">
+      <i data-lucide="armchair" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+      <span>Manajemen Meja</span>
+      <span id="tableAvailableBadge" class="ml-auto bg-green-500/20 text-green-400 border border-green-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center hidden">0</span>
     </button>
 
-    <button onclick="navigate('reservations')" data-nav="reservations" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 hover:bg-white/10 transition text-sm font-medium relative">
-      <i data-lucide="calendar-check" class="w-4 h-4"></i>
+    <button onclick="navigate('reservations')" data-nav="reservations" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm font-medium group relative">
+      <i data-lucide="calendar-check" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
       <span>Reservasi</span>
-      <span id="reservationsBadge" class="hidden ml-auto bg-terra text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">0</span>
+      <span id="reservationsBadge" class="ml-auto bg-terra/20 text-terra-light border border-terra/30 text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center hidden">0</span>
     </button>
 
-    <button onclick="navigate('orders')" data-nav="orders" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 hover:bg-white/10 transition text-sm font-medium relative">
-      <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+    <button onclick="navigate('orders')" data-nav="orders" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm font-medium group relative">
+      <i data-lucide="clipboard-list" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
       <span>Orders</span>
-      <span id="ordersBadge" class="hidden ml-auto bg-terra text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">0</span>
+      <span id="ordersBadge" class="ml-auto bg-terra/20 text-terra-light border border-terra/30 text-[10px] font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center hidden">0</span>
     </button>
 
-    <button onclick="navigate('inventory')" data-nav="inventory" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 hover:bg-white/10 transition text-sm font-medium">
-      <i data-lucide="package" class="w-4 h-4"></i>
+    <p class="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40 font-semibold mt-6">Data & Laporan</p>
+
+    <button onclick="navigate('inventory')" data-nav="inventory" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm font-medium group">
+      <i data-lucide="package" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
       <span>Inventory</span>
     </button>
 
-    <button onclick="navigate('reports')" data-nav="reports" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/70 hover:bg-white/10 transition text-sm font-medium">
-      <i data-lucide="file-text" class="w-4 h-4"></i>
+    <button onclick="navigate('reports')" data-nav="reports" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-all duration-200 text-sm font-medium group">
+      <i data-lucide="file-text" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
       <span>Reports</span>
     </button>
   </div>
 
   <!-- Footer Actions -->
-  <div class="border-t border-white/10 pt-3 mt-3 space-y-1">
-    <button onclick="loadDummyTransactions()" class="flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 transition text-xs w-full" title="Tambah data dummy untuk testing">
-      <i data-lucide="database" class="w-3.5 h-3.5"></i>
-      <span>Load Dummy Data</span>
-    </button>
+  <div class="p-4 border-t border-white/10 space-y-1 bg-forest/50">
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <button onclick="loadDummyTransactions()" class="flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition text-[10px] w-full border border-white/5 hover:border-white/10" title="Tambah data dummy">
+        <i data-lucide="database" class="w-4 h-4"></i>
+        <span>Dummy Data</span>
+      </button>
 
-    <button onclick="clearAllTransactions()" class="flex items-center gap-3 px-3 py-2 rounded-lg text-white/50 hover:bg-white/10 transition text-xs w-full" title="Hapus semua data transaksi">
-      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-      <span>Reset Data</span>
-    </button>
+      <button onclick="clearAllTransactions()" class="flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-500/10 transition text-[10px] w-full border border-red-500/10 hover:border-red-500/20" title="Hapus semua data">
+        <i data-lucide="trash-2" class="w-4 h-4"></i>
+        <span>Reset Data</span>
+      </button>
+    </div>
 
-    <button onclick="logout()" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-white/50 hover:bg-white/10 transition text-sm w-full">
-      <i data-lucide="log-out" class="w-4 h-4"></i>
-      <span>Logout</span>
+    <button onclick="logout()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-red-500/10 transition text-sm w-full border border-transparent hover:border-red-500/20 group">
+      <i data-lucide="log-out" class="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"></i>
+      <span>Keluar Aplikasi</span>
     </button>
   </div>
 </nav>
 
 <!-- ===== STYLES ===== -->
 <style>
-  /* Navigation button active state */
+  /* Active State Navigation */
   .nav-btn.active {
-    background: rgba(255, 255, 255, 0.12);
-    color: white;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
   }
 
-  /* Sidebar scrollbar */
-  #sidebar .overflow-y-auto::-webkit-scrollbar {
+  .nav-btn.active i {
+    color: #ffffff;
+  }
+
+  /* Custom Scrollbar for Sidebar */
+  .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
   }
-
-  #sidebar .overflow-y-auto::-webkit-scrollbar-thumb {
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 2px;
   }
 
-  #sidebar .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+  /* Short Bounce Animation for Badge */
+  @keyframes bounce-short {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-25%); }
+  }
+  .animate-bounce-short {
+    animation: bounce-short 0.5s ease-in-out;
+  }
+
+  /* Terra Light Color Utility */
+  .text-terra-light {
+    color: #D55A42;
   }
 </style>

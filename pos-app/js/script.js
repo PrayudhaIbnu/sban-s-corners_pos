@@ -32,6 +32,13 @@ function initApp() {
     loadReservations();
   }
 
+    // ✅ BARU: Initialize table management jika TABLES_DATA sudah ada
+  if (typeof TABLES_DATA !== 'undefined' && TABLES_DATA.length > 0) {
+    console.log('✅ TABLES_DATA loaded, table management ready');
+  } else {
+    console.warn('⚠️ TABLES_DATA not loaded yet');
+  }
+
   renderDashboard();
   renderOrders();
   renderOrdersList();
@@ -60,9 +67,13 @@ async function loadComponents() {
       r.text(),
     );
 
-    const paymentVerificationHtml = await fetch("components/payment-verification.html").then(
-      (r) => r.text(),
-    );
+    const paymentVerificationHtml = await fetch(
+      "components/payment-verification.html",
+    ).then((r) => r.text());
+
+    const tableManagementHtml = await fetch(
+      "components/table-management.html",
+    ).then((r) => r.text());
 
     const reservationHtml = await fetch("components/reservation.html").then(
       (r) => r.text(),
@@ -71,7 +82,7 @@ async function loadComponents() {
     const salesHtml = await fetch("components/sales.html").then((r) =>
       r.text(),
     );
-    
+
     const ordersHtml = await fetch("components/orders.html").then((r) =>
       r.text(),
     );
@@ -91,6 +102,7 @@ async function loadComponents() {
         ${dashboardHtml}
         ${paymentVerificationHtml}
         ${reservationHtml}
+        ${tableManagementHtml}
         ${salesHtml}
         ${ordersHtml}
         ${inventoryHtml}

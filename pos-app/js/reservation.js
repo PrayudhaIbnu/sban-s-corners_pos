@@ -553,15 +553,15 @@ function showReservationDetail(reservationId) {
         <!-- Info Grid -->
         <div class="grid grid-cols-2 gap-3 text-sm">
           <div class="bg-cream rounded-lg p-3">
-            <p class="text-xs text-gray-500 mb-1">👤 Nama</p>
+            <p class="text-xs text-gray-500 mb-1">Nama</p>
             <p class="font-semibold">${reservation.customerName}</p>
           </div>
           <div class="bg-cream rounded-lg p-3">
-            <p class="text-xs text-gray-500 mb-1">📱 WhatsApp</p>
+            <p class="text-xs text-gray-500 mb-1">WhatsApp</p>
             <p class="font-semibold">${reservation.customerPhone}</p>
           </div>
           <div class="bg-cream rounded-lg p-3">
-            <p class="text-xs text-gray-500 mb-1">🪑 Meja</p>
+            <p class="text-xs text-gray-500 mb-1">Meja</p>
             <p class="font-semibold">Meja ${reservation.tableNumber}</p>
           </div>
           <div class="bg-cream rounded-lg p-3">
@@ -569,11 +569,11 @@ function showReservationDetail(reservationId) {
             <p class="font-semibold">${reservation.guestCount} orang</p>
           </div>
           <div class="bg-cream rounded-lg p-3">
-            <p class="text-xs text-gray-500 mb-1">📅 Tanggal</p>
+            <p class="text-xs text-gray-500 mb-1">Tanggal</p>
             <p class="font-semibold">${formatReservationDate(reservation.date)}</p>
           </div>
           <div class="bg-cream rounded-lg p-3">
-            <p class="text-xs text-gray-500 mb-1">🕐 Waktu</p>
+            <p class="text-xs text-gray-500 mb-1">Waktu</p>
             <p class="font-semibold">${reservation.time} - ${reservation.endTime}</p>
           </div>
         </div>

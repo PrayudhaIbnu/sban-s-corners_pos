@@ -1,6 +1,7 @@
-// ===== REPORTS MODULE =====
+// ===== REPORTS MODULE (PROFESSIONAL VERSION) =====
 
-let currentReportPeriod = 'today';
+let currentReportPeriod = 'week'; // Default 7 hari
+let currentOrderTypeFilter = 'all'; 
 let customDateFrom = null;
 let customDateTo = null;
 
@@ -13,10 +14,11 @@ function getReportOrders() {
 }
 
 /**
- * Hitung rentang tanggal
+ * Hitung rentang tanggal dengan presisi
  */
 function getDateRange(period) {
   const now = new Date();
+  // Set waktu ke 00:00:00 untuk perhitungan tanggal yang akurat
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let from, to;
 
@@ -68,7 +70,7 @@ function getDateRange(period) {
 }
 
 /**
- * ✅ Filter transaksi - PAKAI getReportOrders
+ * ✅ Filter transaksi utama
  */
 function getFilteredTransactions() {
   const { from, to } = getDateRange(currentReportPeriod);
@@ -76,8 +78,19 @@ function getFilteredTransactions() {
   
   return orders.filter(t => {
     if (t.status === 'cancelled') return false;
-    const tDate = new Date(t.date);
-    return tDate >= from && tDate <= to;
+    
+    // Gunakan createdAt atau date untuk filter
+    const tDate = new Date(t.createdAt || t.date);
+    
+    // Filter by date range
+    if (tDate < from || tDate > to) return false;
+    
+    // Filter by order type
+    if (currentOrderTypeFilter !== 'all' && t.orderType !== currentOrderTypeFilter) {
+      return false;
+    }
+    
+    return true;
   });
 }
 
@@ -111,17 +124,27 @@ function setReportPeriod(period) {
   renderReports();
 }
 
+function setOrderTypeFilter(type) {
+  currentOrderTypeFilter = type;
+  
+  document.querySelectorAll('.order-type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+  
+  renderReports();
+}
+
 function applyCustomDateRange() {
   const fromInput = document.getElementById('reportDateFrom');
   const toInput = document.getElementById('reportDateTo');
   
   if (!fromInput?.value || !toInput?.value) {
-    alert('Silakan pilih tanggal mulai dan selesai');
+    Modal.warning({ title: 'Tanggal Belum Lengkap', message: 'Silakan pilih tanggal mulai dan selesai', icon: 'calendar' });
     return;
   }
   
   if (new Date(fromInput.value) > new Date(toInput.value)) {
-    alert('Tanggal mulai tidak boleh lebih besar dari tanggal selesai');
+    Modal.error({ title: 'Tanggal Tidak Valid', message: 'Tanggal mulai tidak boleh lebih besar dari tanggal selesai', icon: 'alert-circle' });
     return;
   }
   
@@ -136,13 +159,10 @@ function applyCustomDateRange() {
 function resetCustomDateRange() {
   const fromInput = document.getElementById('reportDateFrom');
   const toInput = document.getElementById('reportDateTo');
-  
   if (fromInput) fromInput.value = '';
   if (toInput) toInput.value = '';
-  
   customDateFrom = null;
   customDateTo = null;
-  
   setReportPeriod('today');
 }
 
@@ -170,11 +190,10 @@ function formatDateShort(date) {
 }
 
 /**
- * ✅ Render reports - PAKAI getFilteredTransactions
+ * ✅ RENDER UTAMA
  */
 function renderReports() {
   const filtered = getFilteredTransactions();
-  
   console.log('📊 Rendering reports, filtered:', filtered.length);
   
   renderReportStats(filtered);
@@ -183,45 +202,86 @@ function renderReports() {
   renderTopProducts(filtered);
   renderReportsTable(filtered);
   
-  if (window.lucide) {
-    setTimeout(() => lucide.createIcons(), 50);
-  }
+  if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
 }
 
+/**
+ * ✅ STATS CARDS DENGAN ANIMASI ANGKA
+ */
 function renderReportStats(filtered) {
   const totalRevenue = filtered.reduce((sum, t) => sum + (t.total || 0), 0);
   const totalTx = filtered.length;
   const avgOrder = totalTx > 0 ? Math.round(totalRevenue / totalTx) : 0;
-  const maxTx = filtered.length > 0 
-    ? Math.max(...filtered.map(t => t.total || 0)) 
-    : 0;
+  
+  // Hitung max transaction value
+  const maxTx = filtered.length > 0 ? Math.max(...filtered.map(t => t.total || 0)) : 0;
+  
+  // Hitung per tipe
+  const reservationCount = filtered.filter(t => t.orderType === 'reservation').length;
+  const deliveryCount = filtered.filter(t => t.orderType === 'delivery').length;
   
   const trend = calculateTrend();
   
-  const elRevenue = document.getElementById('reportTotalRevenue');
-  const elTx = document.getElementById('reportTotalTx');
-  const elAvg = document.getElementById('reportAvgOrder');
-  const elMax = document.getElementById('reportMaxTx');
+  // Animate numbers
+  animateNumber('reportTotalRevenue', totalRevenue, 'Rp');
+  animateNumber('reportTotalTx', totalTx);
+  animateNumber('reportAvgOrder', avgOrder, 'Rp');
+  animateNumber('reportMaxTx', maxTx, 'Rp');
+  
+  // Update badges
+  const elReservation = document.getElementById('reportReservationCount');
+  const elDelivery = document.getElementById('reportDeliveryCount');
+  if (elReservation) elReservation.textContent = reservationCount;
+  if (elDelivery) elDelivery.textContent = deliveryCount;
+  
+  // Trend indicator
   const elTrend = document.getElementById('revenueTrend');
-  
-  if (elRevenue) elRevenue.textContent = 'Rp ' + totalRevenue.toLocaleString('id-ID');
-  if (elTx) elTx.textContent = totalTx;
-  if (elAvg) elAvg.textContent = 'Rp ' + avgOrder.toLocaleString('id-ID');
-  if (elMax) elMax.textContent = 'Rp ' + maxTx.toLocaleString('id-ID');
-  
   if (elTrend) {
     if (trend === null) {
-      elTrend.textContent = '-';
+      elTrend.innerHTML = `<span class="flex items-center gap-1"><i data-lucide="minus" class="w-3 h-3"></i>-</span>`;
+      elTrend.className = 'text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full';
     } else if (trend > 0) {
-      elTrend.innerHTML = `<span class="flex items-center gap-0.5">↑ ${trend}%</span>`;
-      elTrend.className = 'text-xs bg-green-400/30 text-white px-2 py-0.5 rounded-full';
+      elTrend.innerHTML = `<span class="flex items-center gap-1"><i data-lucide="trending-up" class="w-3 h-3"></i>${trend}%</span>`;
+      elTrend.className = 'text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold';
     } else if (trend < 0) {
-      elTrend.innerHTML = `<span class="flex items-center gap-0.5">↓ ${Math.abs(trend)}%</span>`;
-      elTrend.className = 'text-xs bg-red-400/30 text-white px-2 py-0.5 rounded-full';
+      elTrend.innerHTML = `<span class="flex items-center gap-1"><i data-lucide="trending-down" class="w-3 h-3"></i>${Math.abs(trend)}%</span>`;
+      elTrend.className = 'text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold';
     } else {
-      elTrend.textContent = '→ 0%';
+      elTrend.innerHTML = `<span class="flex items-center gap-1"><i data-lucide="minus" class="w-3 h-3"></i>0%</span>`;
+      elTrend.className = 'text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full';
     }
   }
+  
+  if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Helper: Animasi counting number
+ */
+function animateNumber(elementId, targetValue, prefix = '') {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  
+  const duration = 600;
+  const steps = 20;
+  const stepDuration = duration / steps;
+  let currentStep = 0;
+  
+  const interval = setInterval(() => {
+    currentStep++;
+    const progress = currentStep / steps;
+    // Easing function untuk animasi smooth
+    const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+    const currentValue = Math.round(targetValue * easeOutQuart);
+    
+    if (prefix === 'Rp') {
+      element.textContent = 'Rp ' + currentValue.toLocaleString('id-ID');
+    } else {
+      element.textContent = currentValue.toLocaleString('id-ID');
+    }
+    
+    if (currentStep >= steps) clearInterval(interval);
+  }, stepDuration);
 }
 
 function calculateTrend() {
@@ -236,19 +296,19 @@ function calculateTrend() {
   const allOrders = getReportOrders();
   const prevTransactions = allOrders.filter(t => {
     if (t.status === 'cancelled') return false;
-    const tDate = new Date(t.date);
+    const tDate = new Date(t.createdAt || t.date);
     return tDate >= prevFrom && tDate <= prevTo;
   });
   
   const prevRevenue = prevTransactions.reduce((sum, t) => sum + (t.total || 0), 0);
   
-  if (prevRevenue === 0) {
-    return currentRevenue > 0 ? 100 : null;
-  }
-  
+  if (prevRevenue === 0) return currentRevenue > 0 ? 100 : null;
   return Math.round(((currentRevenue - prevRevenue) / prevRevenue) * 100);
 }
 
+/**
+ * ✅ PAYMENT BREAKDOWN & DONUT CHART YANG RAPIH
+ */
 function renderPaymentBreakdown(filtered) {
   const container = document.getElementById('paymentBreakdown');
   const chartContainer = document.getElementById('paymentChart');
@@ -256,19 +316,19 @@ function renderPaymentBreakdown(filtered) {
   if (!container || !chartContainer) return;
   
   if (!filtered.length) {
-    container.innerHTML = `<div class="text-center py-6"><p class="text-sm text-gray-400">Belum ada data</p></div>`;
-    chartContainer.innerHTML = `<p class="text-sm text-gray-400">-</p>`;
+    container.innerHTML = `<div class="text-center py-8"><i data-lucide="credit-card" class="w-12 h-12 mx-auto mb-2 text-gray-300"></i><p class="text-sm text-gray-400">Belum ada data pembayaran</p></div>`;
+    chartContainer.innerHTML = '';
+    if (window.lucide) lucide.createIcons();
     return;
   }
   
   const paymentStats = {
-    CASH: { count: 0, total: 0, icon: 'banknote', color: 'green' },
-    QRIS: { count: 0, total: 0, icon: 'qr-code', color: 'blue' },
-    TRANSFER: { count: 0, total: 0, icon: 'building-2', color: 'purple' }
+    QRIS: { count: 0, total: 0, icon: 'qr-code', color: 'blue', hex: '#3B82F6' },
+    TRANSFER: { count: 0, total: 0, icon: 'building-2', color: 'purple', hex: '#8B5CF6' }
   };
   
   filtered.forEach(t => {
-    const method = t.payment_method || 'CASH';
+    const method = t.payment_method || t.paymentMethod || 'QRIS';
     if (paymentStats[method]) {
       paymentStats[method].count++;
       paymentStats[method].total += t.total || 0;
@@ -277,25 +337,25 @@ function renderPaymentBreakdown(filtered) {
   
   const totalAll = Object.values(paymentStats).reduce((sum, s) => sum + s.total, 0);
   
+  // Render list
   container.innerHTML = Object.entries(paymentStats).map(([method, stats]) => {
     if (stats.count === 0) return '';
     const percentage = totalAll > 0 ? Math.round((stats.total / totalAll) * 100) : 0;
     
     return `
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition border border-transparent hover:border-gray-100">
         <div class="w-10 h-10 rounded-xl bg-${stats.color}-50 text-${stats.color}-600 flex items-center justify-center flex-shrink-0">
           <i data-lucide="${stats.icon}" class="w-5 h-5"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between mb-1">
-            <p class="font-semibold text-sm">${method}</p>
-            <p class="text-xs text-gray-500">${stats.count}x • ${percentage}%</p>
+          <div class="flex items-center justify-between mb-1.5">
+            <p class="font-bold text-sm text-gray-800">${method}</p>
+            <p class="text-xs font-medium text-gray-500">${stats.count}x • ${percentage}%</p>
           </div>
-          <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div class="h-full bg-${stats.color}-500 rounded-full transition-all duration-500" 
-                 style="width: ${percentage}%"></div>
+          <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-${stats.color}-400 to-${stats.color}-600 rounded-full transition-all duration-700 ease-out" style="width: ${percentage}%"></div>
           </div>
-          <p class="text-xs text-gray-500 mt-1">Rp ${stats.total.toLocaleString('id-ID')}</p>
+          <p class="text-xs text-gray-500 mt-1.5 font-medium">Rp ${stats.total.toLocaleString('id-ID')}</p>
         </div>
       </div>
     `;
@@ -303,42 +363,51 @@ function renderPaymentBreakdown(filtered) {
   
   if (window.lucide) lucide.createIcons();
   
-  const cashPct = totalAll > 0 ? (paymentStats.CASH.total / totalAll) * 100 : 0;
+  // Render donut chart yang presisi
   const qrisPct = totalAll > 0 ? (paymentStats.QRIS.total / totalAll) * 100 : 0;
+  const transferPct = totalAll > 0 ? (paymentStats.TRANSFER.total / totalAll) * 100 : 0;
+  
+  const circumference = 2 * Math.PI * 40; // r=40
   
   chartContainer.innerHTML = `
-    <div class="relative w-32 h-32">
+    <div class="relative w-40 h-40 mx-auto">
       <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r="40" fill="none" stroke="#E5E7EB" stroke-width="12"/>
-        <circle cx="50" cy="50" r="40" fill="none" stroke="#22C55E" stroke-width="12"
-                stroke-dasharray="${cashPct * 2.51} ${251 - cashPct * 2.51}"/>
+        <!-- Background circle -->
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#F3F4F6" stroke-width="12"/>
+        
+        <!-- QRIS Segment -->
         <circle cx="50" cy="50" r="40" fill="none" stroke="#3B82F6" stroke-width="12"
-                stroke-dasharray="${qrisPct * 2.51} ${251 - qrisPct * 2.51}"
-                stroke-dashoffset="${-cashPct * 2.51}"/>
+                stroke-dasharray="${(qrisPct / 100) * circumference} ${circumference}"
+                stroke-linecap="round"
+                class="transition-all duration-1000 ease-out"/>
+                
+        <!-- Transfer Segment -->
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#8B5CF6" stroke-width="12"
+                stroke-dasharray="${(transferPct / 100) * circumference} ${circumference}"
+                stroke-dashoffset="${-(qrisPct / 100) * circumference}"
+                stroke-linecap="round"
+                class="transition-all duration-1000 ease-out"/>
       </svg>
+      
+      <!-- Center Text -->
       <div class="absolute inset-0 flex flex-col items-center justify-center">
-        <p class="text-xs text-gray-500">Total</p>
-        <p class="font-brand font-bold text-forest text-sm">${filtered.length}</p>
-        <p class="text-[10px] text-gray-400">transaksi</p>
+        <p class="text-xs text-gray-500 font-medium">Total Transaksi</p>
+        <p class="font-brand font-bold text-forest text-2xl mt-1">${filtered.length}</p>
       </div>
     </div>
   `;
 }
 
+/**
+ * ✅ SALES CHART YANG PROPORSIONAL & SMOOTH
+ */
 function renderSalesChart(filtered) {
   const chart = document.getElementById('salesChart');
   const subtitle = document.getElementById('chartSubtitle');
   if (!chart) return;
   
   if (!filtered.length) {
-    chart.innerHTML = `
-      <div class="w-full flex items-center justify-center text-gray-400 text-sm">
-        <div class="text-center">
-          <i data-lucide="bar-chart" class="w-10 h-10 mx-auto mb-2 opacity-30"></i>
-          <p>Belum ada data untuk ditampilkan</p>
-        </div>
-      </div>
-    `;
+    chart.innerHTML = `<div class="w-full flex items-center justify-center text-gray-400 text-sm py-16"><div class="text-center"><i data-lucide="bar-chart-3" class="w-16 h-16 mx-auto mb-3 opacity-30"></i><p class="font-medium">Belum ada data untuk ditampilkan</p></div></div>`;
     if (subtitle) subtitle.textContent = 'Tidak ada data';
     if (window.lucide) lucide.createIcons();
     return;
@@ -347,6 +416,7 @@ function renderSalesChart(filtered) {
   const { from, to } = getDateRange(currentReportPeriod);
   const diffDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
   
+  // Generate daily buckets
   const dailyData = {};
   for (let i = 0; i < diffDays; i++) {
     const d = new Date(from);
@@ -355,8 +425,9 @@ function renderSalesChart(filtered) {
     dailyData[key] = { total: 0, count: 0, date: d };
   }
   
+  // Aggregate data
   filtered.forEach(t => {
-    const key = new Date(t.date).toISOString().split('T')[0];
+    const key = new Date(t.createdAt || t.date).toISOString().split('T')[0];
     if (dailyData[key]) {
       dailyData[key].total += t.total || 0;
       dailyData[key].count++;
@@ -365,62 +436,69 @@ function renderSalesChart(filtered) {
   
   const days = Object.values(dailyData);
   const max = Math.max(...days.map(d => d.total), 1);
+  const totalRevenue = days.reduce((sum, d) => sum + d.total, 0);
   
   if (subtitle) {
-    if (diffDays === 1) subtitle.textContent = `Penjualan hari ini`;
-    else if (diffDays <= 7) subtitle.textContent = `Penjualan ${diffDays} hari terakhir`;
-    else subtitle.textContent = `Penjualan ${diffDays} hari`;
+    if (diffDays === 1) subtitle.textContent = `Penjualan hari ini • Total: Rp ${totalRevenue.toLocaleString('id-ID')}`;
+    else if (diffDays <= 7) subtitle.textContent = `Penjualan ${diffDays} hari terakhir • Total: Rp ${totalRevenue.toLocaleString('id-ID')}`;
+    else subtitle.textContent = `Penjualan ${diffDays} hari • Total: Rp ${totalRevenue.toLocaleString('id-ID')}`;
   }
   
-  chart.innerHTML = days.map((d) => {
-    const height = Math.max(4, (d.total / max) * 100);
-    const isToday = d.date.toDateString() === new Date().toDateString();
-    const hasData = d.total > 0;
-    const label = diffDays <= 7 
-      ? d.date.toLocaleDateString('id-ID', { weekday: 'short' })
-      : d.date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-    
-    return `
-      <div class="flex-1 flex flex-col justify-end items-center group relative min-w-0">
-        <div class="hidden group-hover:block absolute bottom-full mb-2 bg-forest text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap z-10 shadow-lg pointer-events-none">
-          <p class="font-semibold">${d.date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-          <p>Rp ${d.total.toLocaleString('id-ID')}</p>
-          <p class="text-white/70">${d.count} transaksi</p>
-        </div>
+  chart.innerHTML = `
+    <div class="flex items-end gap-1.5 h-56 px-2 pt-8 pb-2">
+      ${days.map((d, idx) => {
+        const height = Math.max(4, (d.total / max) * 100);
+        const isToday = d.date.toDateString() === new Date().toDateString();
+        const hasData = d.total > 0;
         
-        ${hasData ? `
-          <p class="text-[9px] font-semibold text-forest mb-1 truncate max-w-full">
-            ${d.total >= 1000000 ? (d.total/1000000).toFixed(1) + 'jt' : 
-              d.total >= 1000 ? Math.round(d.total/1000) + 'rb' : d.total}
-          </p>
-        ` : ''}
+        // Label format based on range
+        let label = d.date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        if (diffDays <= 7) label = d.date.toLocaleDateString('id-ID', { weekday: 'short' });
         
-        <div class="w-full rounded-t-md transition-all duration-500 ${
-          isToday ? 'bg-gradient-to-t from-terra to-terraLight' : 
-          hasData ? 'bg-gradient-to-t from-forest/70 to-forestLight/70' : 'bg-gray-100'
-        }" style="height: ${height}%"></div>
+        const formattedValue = d.total >= 1000000 ? (d.total/1000000).toFixed(1) + 'jt' : d.total >= 1000 ? Math.round(d.total/1000) + 'rb' : d.total;
         
-        <span class="text-[10px] mt-1.5 font-medium text-center ${
-          isToday ? 'text-terra font-bold' : 'text-gray-500'
-        } truncate max-w-full">
-          ${diffDays > 14 && !isToday ? '' : (isToday ? 'Now' : label)}
-        </span>
-      </div>
-    `;
-  }).join('');
+        return `
+          <div class="flex-1 flex flex-col justify-end items-center group relative min-w-0 h-full">
+            <!-- Tooltip -->
+            <div class="hidden group-hover:block absolute bottom-full mb-4 bg-forest text-white text-xs rounded-xl px-4 py-3 whitespace-nowrap z-20 shadow-xl pointer-events-none animate-fade-in border border-white/10">
+              <p class="font-bold mb-2 text-sm">${d.date.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              <div class="space-y-1">
+                <p class="flex items-center gap-2"><i data-lucide="banknote" class="w-3.5 h-3.5"></i>Rp ${d.total.toLocaleString('id-ID')}</p>
+                <p class="flex items-center gap-2 text-white/70"><i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>${d.count} transaksi</p>
+              </div>
+              <div class="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-forest"></div>
+            </div>
+            
+            <!-- Value label above bar -->
+            ${hasData ? `<p class="text-[10px] font-bold text-forest mb-2 truncate max-w-full transition-opacity duration-300 group-hover:opacity-0">${formattedValue}</p>` : '<div class="mb-2"></div>'}
+            
+            <!-- Bar -->
+            <div class="w-full rounded-t-lg transition-all duration-700 ease-out relative overflow-hidden ${isToday ? 'bg-gradient-to-t from-terra via-terraLight to-terra shadow-lg shadow-terra/20' : hasData ? 'bg-gradient-to-t from-forest/90 via-forestLight/90 to-forestLight shadow-sm' : 'bg-gray-100'}" style="height: ${height}%;">
+              ${hasData && !isToday ? `<div class="absolute inset-0 bg-gradient-to-t from-transparent to-white/20"></div>` : ''}
+            </div>
+            
+            <!-- X-axis label -->
+            <span class="text-[10px] mt-3 font-medium text-center ${isToday ? 'text-terra font-bold' : 'text-gray-500'} truncate max-w-full leading-tight">
+              ${diffDays > 14 && !isToday ? '' : (isToday ? 'Hari Ini' : label)}
+            </span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+  
+  if (window.lucide) lucide.createIcons();
 }
 
+/**
+ * ✅ TOP PRODUCTS DENGAN VISUAL MENARIK
+ */
 function renderTopProducts(filtered) {
   const container = document.getElementById('topProducts');
   if (!container) return;
   
   if (!filtered.length) {
-    container.innerHTML = `
-      <div class="text-center py-8">
-        <i data-lucide="package" class="w-10 h-10 mx-auto mb-2 text-gray-300"></i>
-        <p class="text-sm text-gray-400">Belum ada data produk</p>
-      </div>
-    `;
+    container.innerHTML = `<div class="text-center py-8"><i data-lucide="package" class="w-12 h-12 mx-auto mb-2 text-gray-300"></i><p class="text-sm text-gray-400">Belum ada data produk</p></div>`;
     if (window.lucide) lucide.createIcons();
     return;
   }
@@ -443,128 +521,113 @@ function renderTopProducts(filtered) {
     .slice(0, 5);
   
   const maxQty = items[0]?.qty || 1;
+  const totalRevenue = items.reduce((sum, item) => sum + item.revenue, 0);
+  
+  const medals = ['🥇', '🥈', '🥉'];
+  const bgColors = [
+    'from-yellow-400 to-orange-500',
+    'from-gray-300 to-gray-400',
+    'from-orange-400 to-orange-600',
+    'from-gray-200 to-gray-300',
+    'from-gray-200 to-gray-300'
+  ];
   
   container.innerHTML = items.map((item, index) => {
-    const menuItem = typeof getMenuItemById === 'function' 
-      ? menuItems.find(m => m.name === item.name) 
-      : null;
-    const emoji = menuItem?.emoji || '🍽️';
+    const menuItem = typeof getMenuItemById === 'function' ? menuItems.find(m => m.name === item.name) : null;
     const image = menuItem?.images || menuItem?.image || '';
     const percentage = Math.round((item.qty / maxQty) * 100);
     
-    const medals = ['🥇', '🥈', '🥉'];
-    
     return `
-      <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-cream/50 transition">
-        <div class="w-8 h-8 rounded-lg ${
-          index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white' :
-          index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white' :
-          index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' :
-          'bg-gray-100 text-gray-600'
-        } flex items-center justify-center font-bold text-sm flex-shrink-0">
+      <div class="flex items-center gap-4 p-3 rounded-xl hover:bg-cream/50 transition group border border-transparent hover:border-gray-100">
+        <!-- Rank Badge -->
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${bgColors[index]} text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-300">
           ${index < 3 ? medals[index] : index + 1}
         </div>
         
-        <div class="w-11 h-11 rounded-lg bg-cream flex-shrink-0 overflow-hidden flex items-center justify-center">
-          ${image ? `
-            <img src="${image}" alt="${item.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="hidden w-full h-full items-center justify-center text-xl">${emoji}</div>
-          ` : `<span class="text-xl">${emoji}</span>`}
+        <!-- Product Image -->
+        <div class="w-12 h-12 rounded-xl bg-cream flex-shrink-0 overflow-hidden flex items-center justify-center border border-gray-100">
+          ${image ? `<img src="${image}" alt="${item.name}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="hidden w-full h-full items-center justify-center text-2xl">🍽️</div>` : `<span class="text-2xl">🍽️</span>`}
         </div>
         
+        <!-- Info & Progress -->
         <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between mb-1">
-            <p class="font-semibold text-sm truncate">${item.name}</p>
-            <span class="text-xs font-bold text-forest ml-2">${item.qty}x</span>
+          <div class="flex items-center justify-between mb-1.5">
+            <p class="font-bold text-sm text-gray-800 truncate pr-2">${item.name}</p>
+            <span class="text-xs font-bold text-forest ml-2 bg-forest/10 px-2.5 py-1 rounded-full">${item.qty}x</span>
           </div>
-          <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div class="h-full bg-gradient-to-r from-forest to-forestLight rounded-full transition-all duration-500" 
-                 style="width: ${percentage}%"></div>
+          <div class="h-2 bg-gray-100 rounded-full overflow-hidden mb-1.5">
+            <div class="h-full bg-gradient-to-r from-forest via-forestLight to-forestLight rounded-full transition-all duration-700 ease-out" style="width: ${percentage}%"></div>
           </div>
-          <p class="text-xs text-gray-500 mt-1">Rp ${item.revenue.toLocaleString('id-ID')}</p>
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] text-gray-500 font-medium uppercase tracking-wide">Revenue</p>
+            <p class="text-xs font-bold text-forest">Rp ${item.revenue.toLocaleString('id-ID')}</p>
+          </div>
         </div>
       </div>
     `;
   }).join('');
+  
+  // Footer Total
+  container.innerHTML += `
+    <div class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-sm bg-gray-50/50 p-3 rounded-xl">
+      <span class="text-gray-600 font-medium">Total Revenue (Top 5 Produk)</span>
+      <span class="font-bold text-forest text-base">Rp ${totalRevenue.toLocaleString('id-ID')}</span>
+    </div>
+  `;
 }
 
+/**
+ * ✅ REPORTS TABLE YANG RAPIH
+ */
 function renderReportsTable(filtered) {
   const reportsTable = document.getElementById('reportsTable');
   const txCount = document.getElementById('txCount');
   
-  if (txCount) txCount.textContent = `${filtered.length} transaksi`;
+  if (txCount) {
+    const totalRevenue = filtered.reduce((sum, t) => sum + (t.total || 0), 0);
+    txCount.innerHTML = `<span class="font-medium text-gray-700">${filtered.length} transaksi</span><span class="text-gray-300 mx-2">•</span><span class="font-bold text-forest">Rp ${totalRevenue.toLocaleString('id-ID')}</span>`;
+  }
   
   if (!reportsTable) return;
   
   if (!filtered.length) {
-    reportsTable.innerHTML = `
-      <tr>
-        <td colspan="6" class="px-4 py-12 text-center">
-          <div class="flex flex-col items-center">
-            <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-              <i data-lucide="file-x" class="w-6 h-6 text-gray-400"></i>
-            </div>
-            <p class="text-gray-500 font-medium">Tidak ada transaksi</p>
-            <p class="text-xs text-gray-400 mt-1">Tidak ada data pada periode ini</p>
-          </div>
-        </td>
-      </tr>
-    `;
+    reportsTable.innerHTML = `<tr><td colspan="6" class="px-4 py-16 text-center"><div class="flex flex-col items-center"><div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-3"><i data-lucide="file-x" class="w-8 h-8 text-gray-400"></i></div><p class="text-gray-500 font-medium">Tidak ada transaksi</p><p class="text-xs text-gray-400 mt-1">Tidak ada data pada periode ini</p></div></td></tr>`;
     if (window.lucide) lucide.createIcons();
     return;
   }
   
   reportsTable.innerHTML = [...filtered].reverse().map(t => {
-    const itemCount = Array.isArray(t.items) 
-      ? t.items.reduce((sum, i) => sum + i.qty, 0) 
-      : 0;
-    const paymentIcon = t.payment_method === 'QRIS' ? 'qr-code' : 
-                       t.payment_method === 'TRANSFER' ? 'building-2' : 'banknote';
-    const paymentColor = t.payment_method === 'QRIS' ? 'blue' : 
-                        t.payment_method === 'TRANSFER' ? 'purple' : 'green';
+    const itemCount = Array.isArray(t.items) ? t.items.reduce((sum, i) => sum + i.qty, 0) : 0;
+    const paymentIcon = t.payment_method === 'QRIS' ? 'qr-code' : t.payment_method === 'TRANSFER' ? 'building-2' : 'banknote';
+    const paymentColor = t.payment_method === 'QRIS' ? 'blue' : t.payment_method === 'TRANSFER' ? 'purple' : 'green';
     const statusMeta = STATUS_META[t.status] || STATUS_META.completed;
     
-    // Badge tipe order
     const orderTypeBadge = t.orderType === 'delivery' 
-      ? `<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-terra/10 text-terra">
-           <i data-lucide="truck" class="w-3 h-3"></i>Delivery
-         </span>`
-      : `<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-forest/10 text-forest">
-           <i data-lucide="calendar" class="w-3 h-3"></i>Reservasi
-         </span>`;
+      ? `<span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-terra/10 text-terra font-semibold border border-terra/20"><i data-lucide="truck" class="w-3 h-3"></i>Delivery</span>`
+      : `<span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md bg-forest/10 text-forest font-semibold border border-forest/20"><i data-lucide="calendar" class="w-3 h-3"></i>Reservasi</span>`;
     
     return `
-      <tr class="border-t border-gray-100 hover:bg-cream/30 transition cursor-pointer" 
-          onclick="openOrderDetail('${t.order_id}')">
-        <td class="px-4 py-3">
-          <div class="flex items-center gap-2">
-            <span class="font-mono text-xs font-semibold text-forest">${t.order_id}</span>
+      <tr class="border-t border-gray-100 hover:bg-cream/40 transition cursor-pointer group" onclick="openOrderDetail('${t.order_id}')">
+        <td class="px-4 py-3.5">
+          <div class="flex items-center gap-2.5">
+            <span class="font-mono text-xs font-bold text-forest group-hover:text-forestLight transition">${t.order_id}</span>
             ${orderTypeBadge}
           </div>
         </td>
-        <td class="px-4 py-3">
-          <div class="text-sm">${new Date(t.date).toLocaleString('id-ID')}</div>
+        <td class="px-4 py-3.5">
+          <div class="text-sm text-gray-700 font-medium">${new Date(t.createdAt || t.date).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
         </td>
-        <td class="px-4 py-3">
-          <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded-full">
-            <i data-lucide="shopping-bag" class="w-3 h-3"></i>
-            ${itemCount} item${itemCount > 1 ? 's' : ''}
-          </span>
+        <td class="px-4 py-3.5">
+          <span class="inline-flex items-center gap-1.5 text-xs bg-gray-100 px-2.5 py-1 rounded-full font-medium text-gray-700"><i data-lucide="shopping-bag" class="w-3 h-3"></i>${itemCount} item${itemCount > 1 ? 's' : ''}</span>
         </td>
-        <td class="px-4 py-3">
-          <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-${paymentColor}-50 text-${paymentColor}-700 border border-${paymentColor}-100">
-            <i data-lucide="${paymentIcon}" class="w-3 h-3"></i>
-            ${t.payment_method}
-          </span>
+        <td class="px-4 py-3.5">
+          <span class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-${paymentColor}-50 text-${paymentColor}-700 border border-${paymentColor}-100 font-medium"><i data-lucide="${paymentIcon}" class="w-3 h-3"></i>${t.payment_method || 'QRIS'}</span>
         </td>
-        <td class="px-4 py-3">
-          <span class="status-badge status-${statusMeta.color} px-2 py-0.5 text-[11px] inline-flex items-center gap-1">
-            <i data-lucide="${statusMeta.icon}" class="w-3 h-3"></i>
-            ${statusMeta.label}
-          </span>
+        <td class="px-4 py-3.5">
+          <span class="status-badge status-${statusMeta.color} px-2.5 py-1 text-[11px] inline-flex items-center gap-1.5 font-medium"><i data-lucide="${statusMeta.icon}" class="w-3 h-3"></i>${statusMeta.label}</span>
         </td>
-        <td class="px-4 py-3 text-right">
-          <span class="font-bold text-terra">Rp ${(t.total || 0).toLocaleString('id-ID')}</span>
+        <td class="px-4 py-3.5 text-right">
+          <span class="font-bold text-terra group-hover:text-terraLight transition text-sm">Rp ${(t.total || 0).toLocaleString('id-ID')}</span>
         </td>
       </tr>
     `;
@@ -575,44 +638,35 @@ function renderReportsTable(filtered) {
 
 function exportReportCSV() {
   const filtered = getFilteredTransactions();
-  
   if (!filtered.length) {
-    alert('Tidak ada data untuk di-export');
+    Modal.warning({ title: 'Tidak Ada Data', message: 'Tidak ada data untuk di-export', icon: 'file-x' });
     return;
   }
   
-  const headers = ['Order ID', 'Tanggal', 'Tipe', 'Items', 'Total', 'Pembayaran', 'Status'];
+  const headers = ['Order ID', 'Tanggal', 'Tipe', 'Customer', 'Items', 'Total', 'Pembayaran', 'Status'];
   const rows = filtered.map(t => {
-    const itemCount = Array.isArray(t.items) 
-      ? t.items.reduce((sum, i) => sum + i.qty, 0) 
-      : 0;
+    const itemCount = Array.isArray(t.items) ? t.items.reduce((sum, i) => sum + i.qty, 0) : 0;
     return [
       t.order_id,
-      new Date(t.date).toLocaleString('id-ID'),
+      new Date(t.createdAt || t.date).toLocaleString('id-ID'),
       t.orderType || 'reservation',
+      t.customerName || '-',
       itemCount,
       t.total || 0,
-      t.payment_method || 'CASH',
+      t.payment_method || 'QRIS',
       t.status || 'completed'
     ];
   });
   
-  const csvContent = [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
-  ].join('\n');
-  
+  const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   const { from, to } = getDateRange(currentReportPeriod);
-  const filename = `laporan-${from.toISOString().split('T')[0]}-to-${to.toISOString().split('T')[0]}.csv`;
-  a.download = filename;
+  a.download = `laporan-${from.toISOString().split('T')[0]}-to-${to.toISOString().split('T')[0]}.csv`;
   a.click();
   URL.revokeObjectURL(url);
   
-  if (typeof showOrderToast === 'function') {
-    showOrderToast(`Laporan berhasil di-export (${filtered.length} transaksi)`, 'success');
-  }
+  Modal.success({ title: 'Export Berhasil', message: `${filtered.length} transaksi berhasil di-export ke CSV`, icon: 'check-circle' });
 }

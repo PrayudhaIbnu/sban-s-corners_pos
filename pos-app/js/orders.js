@@ -514,7 +514,7 @@ function renderOrderCard(order) {
 
   const customerInfo =
     order.orderType === "delivery" && order.customerName
-      ? `<p class="text-xs text-gray-500 mt-1 truncate">👤 ${order.customerName}</p>`
+      ? `<p class="text-xs text-gray-500 mt-1 truncate">${order.customerName}</p>`
       : order.orderType === "reservation" && order.tableName
         ? `<p class="text-xs text-gray-500 mt-1">🪑 ${order.tableName} • ${order.guestCount || 0} org</p>`
         : "";

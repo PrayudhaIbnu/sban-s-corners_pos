@@ -68,20 +68,6 @@ function renderConfirmationPage(container) {
     </div>
 
     <main class="max-w-2xl mx-auto px-4 py-8">
-      
-      <!-- Status Info -->
-      <div class="card mb-6">
-        <div class="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <i data-lucide="clock" class="w-6 h-6 text-amber-600 flex-shrink-0"></i>
-          <div>
-            <p class="font-semibold text-amber-900 mb-1">Menunggu Verifikasi Pembayaran</p>
-            <p class="text-sm text-amber-700">
-              Admin akan memverifikasi bukti pembayaran Anda. Anda akan menerima notifikasi setelah pembayaran dikonfirmasi.
-            </p>
-          </div>
-        </div>
-      </div>
-
       <!-- Reservation Details -->
       <div class="card mb-6">
         <h2 class="font-semibold text-lg mb-4 flex items-center gap-2">

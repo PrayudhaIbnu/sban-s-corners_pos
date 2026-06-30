@@ -17,40 +17,54 @@ function initNavigation() {
 
 function navigate(page) {
   currentPage = page;
-
+  
+  // Hide all pages
   document.querySelectorAll(".page").forEach((p) => p.classList.add("hidden"));
-
+  
+  // Show selected page
   const selectedPage = document.getElementById("page-" + page);
   if (selectedPage) {
     selectedPage.classList.remove("hidden");
   }
-
+  
+  // Update active state
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.nav === page);
   });
-
+  
+  // Render page content
   if (page === "sales") renderMenu();
   if (page === "inventory") renderInventory();
   if (page === "dashboard") renderDashboard();
   if (page === "reports") renderReports();
   if (page === "orders") renderOrders();
+  
   if (page === "reservations") {
-    if (typeof initReservations === "function") {
+    if (typeof initReservations === 'function') {
       initReservations();
     } else {
       renderReservations();
     }
   }
-
-  // ⚠️ BARU: Payment Verification
-  if (page === "payment-verification") {
-    if (typeof initPaymentVerification === "function") {
-      initPaymentVerification();
-    } else {
-      renderPaymentVerification();
+  
+  // ✅ TABLE MANAGEMENT - Panggil LANGSUNG setelah page di-show
+  if (page === "table-management") {
+    console.log('🪑 Navigating to table management');
+    
+    // ✅ Panggil init dulu (setup listener)
+    if (typeof initTableManagement === 'function') {
+      initTableManagement();
     }
+    
+    // ✅ PASTIKAN render dipanggil setelah delay
+    setTimeout(() => {
+      if (typeof renderTableManagement === 'function') {
+        console.log('🪑 Rendering table management from navigation');
+        renderTableManagement();
+      }
+    }, 150); // 150ms untuk memastikan semua siap
   }
-
+  
   if (window.innerWidth < 1024) {
     closeSidebar();
   }
